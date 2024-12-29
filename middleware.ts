@@ -10,6 +10,11 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  // Redirect to login if no session
+  if (!session) {
+    return NextResponse.redirect('/login')
+  }
+
   // Add role to request header
   if (session?.user) {
     const { data: profile } = await supabase
