@@ -23,44 +23,40 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-
-const supabase = createClientComponentClient();
+import { FunFact } from "@/types";
 
 const formSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().min(2, {
+    message: "Title must be at least 2 characters.",
+  }),
   description: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 interface AddFunFactDialogProps {
-  onSuccess?: (newFact: {
-    id: string;
-    title: string;
-    description: string | null;
-    created_at: string;
-  }) => void;
+  onSuccess?: (newFact: FunFact) => void;
 }
 
 export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+  const supabase = createClientComponentClient();
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
-      description: '',
+      title: "",
+      description: "",
     },
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const onSubmit = async (values: FormData) => {
-    const newFunFact = {
+  async function onSubmit(values: FormData) {
+    const newFunFact: FunFact = {
       id: crypto.randomUUID(),
       title: values.title,
       description: values.description || null,
@@ -70,8 +66,8 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
     try {
       setIsSubmitting(true)
       
-      // Optimistic update
-      setFunFacts(prev => [newFunFact, ...prev])
+      // Notify parent component for optimistic update
+      onSuccess?.(newFunFact)
       
       const { error } = await supabase
         .from('fun_facts')
@@ -88,11 +84,8 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
       })
 
       form.reset()
-      setIsOpen(false)
+      setOpen(false)
     } catch (error) {
-      // Rollback optimistic update
-      setFunFacts(prev => prev.filter(fact => fact.id !== newFunFact.id))
-      
       console.error('Error adding fun fact:', error)
       toast({
         title: "Error",
@@ -102,21 +95,21 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
     } finally {
       setIsSubmitting(false)
     }
-  };
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Sparkles className="h-4 w-4" />
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
           Add Fun Fact
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Fun Fact</DialogTitle>
+          <DialogTitle>Add New Fun Fact</DialogTitle>
           <DialogDescription>
-            Share an interesting fact about Astrella
+            Add an interesting fact about Astrella
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -134,7 +127,6 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="description"
@@ -142,9 +134,8 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Add more details about this fun fact... (optional)"
-                      className="min-h-[100px]"
+                    <Textarea 
+                      placeholder="Add more details about this fun fact..."
                       {...field}
                     />
                   </FormControl>
@@ -152,20 +143,19 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
                 </FormItem>
               )}
             />
-
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  Adding...
                 </>
               ) : (
-                'Submit'
+                'Add Fun Fact'
               )}
             </Button>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 } 

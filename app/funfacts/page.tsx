@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { FunFactCard } from "@/components/funfacts/fun-fact-card"
 import { useToast } from "@/components/ui/use-toast"
+import { AddFunFactDialog } from "@/components/funfacts/add-funfact-dialog"
 
 interface FunFact {
   id: string
@@ -56,6 +57,10 @@ export default function FunFactsPage() {
     }
   }, [])
 
+  const handleNewFunFact = (newFact: FunFact) => {
+    setFunFacts(prev => [newFact, ...prev])
+  }
+
   if (isLoading) {
     return (
       <div className="container max-w-5xl py-10">
@@ -76,6 +81,8 @@ export default function FunFactsPage() {
         </div>
         <p className="text-[#a1a1aa]">Interesting and unique things about Astrella</p>
       </div>
+
+      <AddFunFactDialog onSuccess={handleNewFunFact} />
 
       {funFacts.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
