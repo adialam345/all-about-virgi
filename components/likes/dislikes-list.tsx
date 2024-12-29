@@ -18,6 +18,13 @@ interface Dislike {
   }[]
 }
 
+interface TagItem {
+  tag: {
+    id: string
+    name: string
+  }
+}
+
 export function DislikesList() {
   const [dislikes, setDislikes] = useState<Dislike[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +52,7 @@ export function DislikesList() {
         const transformedData = data?.map(dislike => ({
           ...dislike,
           tags: dislike.tags
-            ?.map(t => t.tag)
+            ?.map((t: TagItem) => t.tag)
             .filter(Boolean) || []
         }))
 
