@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Trash2, Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase-client"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -40,7 +40,6 @@ export default function ManageLikes() {
   const [itemToDelete, setItemToDelete] = useState<Like | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   const fetchLikes = async () => {
     try {
@@ -50,7 +49,7 @@ export default function ManageLikes() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setLikes(data || [])
+      setLikes((data || []) as Like[])
     } catch (error) {
       console.error('Error fetching likes:', error)
       toast({
@@ -63,32 +62,25 @@ export default function ManageLikes() {
     }
   }
 
-  useEffect(() => {
-    fetchLikes()
-
-    const channel = supabase
-      .channel('likes-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'likes' }, 
-        () => fetchLikes()
-      )
-      .subscribe()
-
-    return () => {
-      channel.unsubscribe()
-    }
-  }, [])
-
   const handleDelete = async (like: Like) => {
     try {
       setIsDeleting(true)
-      
-      const { error } = await supabase
+
+      // First try to delete related tags
+      const { error: tagsError } = await supabase
+        .from('item_tags')
+        .delete()
+        .eq('like_id', like.id)
+
+      if (tagsError) throw tagsError
+
+      // Then delete the like
+      const { error: likeError } = await supabase
         .from('likes')
         .delete()
         .eq('id', like.id)
 
-      if (error) throw error
+      if (likeError) throw likeError
 
       toast({
         title: "Success",
@@ -109,6 +101,22 @@ export default function ManageLikes() {
       setIsDeleting(false)
     }
   }
+
+  useEffect(() => {
+    fetchLikes()
+
+    const channel = supabase
+      .channel('likes-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes' }, 
+        () => fetchLikes()
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [])
 
   if (isLoading) {
     return (

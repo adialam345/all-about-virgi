@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ThumbsUp, ThumbsDown } from "lucide-react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase-client"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -14,7 +14,6 @@ type LikeDislikeProps = {
 export function LikeDislike({ itemName, description }: LikeDislikeProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   const handleInteraction = async (isLike: boolean) => {
     try {

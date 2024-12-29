@@ -34,7 +34,6 @@ export default function Home() {
         </div>
         <div className="flex gap-4">
           <AddLikeDislikeDialog />
-          <AddTagDialog />
         </div>
       </section>
 
