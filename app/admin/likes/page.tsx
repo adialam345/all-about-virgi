@@ -147,7 +147,7 @@ export default function ManageLikes() {
                   <TableCell>{like.description || "—"}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={like.is_like ? "success" : "destructive"}
+                      variant={like.is_like ? "default" : "destructive"}
                     >
                       {like.is_like ? "Like" : "Dislike"}
                     </Badge>
