@@ -60,36 +60,43 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSubmit = async (values: FormData) => {
+    const newFunFact = {
+      id: crypto.randomUUID(),
+      title: values.title,
+      description: values.description || null,
+      created_at: new Date().toISOString()
+    }
+
     try {
       setIsSubmitting(true)
       
-      const { data, error } = await supabase
-        .from("fun_facts")
+      // Optimistic update
+      setFunFacts(prev => [newFunFact, ...prev])
+      
+      const { error } = await supabase
+        .from('fun_facts')
         .insert({
           title: values.title,
           description: values.description || null,
         })
-        .select()
-        .single()
 
       if (error) throw error
 
       toast({
         title: "Success!",
-        description: "Fun fact added successfully.",
+        description: "Fun fact has been added.",
       })
-
-      if (data && onSuccess) {
-        onSuccess(data)
-      }
 
       form.reset()
       setIsOpen(false)
     } catch (error) {
+      // Rollback optimistic update
+      setFunFacts(prev => prev.filter(fact => fact.id !== newFunFact.id))
+      
       console.error('Error adding fun fact:', error)
       toast({
-        title: "Error", 
-        description: "Something went wrong. Please try again.",
+        title: "Error",
+        description: "Failed to add fun fact. Please try again.",
         variant: "destructive",
       })
     } finally {

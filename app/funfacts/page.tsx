@@ -41,6 +41,19 @@ export default function FunFactsPage() {
 
   useEffect(() => {
     fetchFunFacts()
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('fun_facts-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'fun_facts' }, 
+        () => fetchFunFacts()
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
   }, [])
 
   if (isLoading) {
