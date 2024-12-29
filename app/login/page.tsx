@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase"
+import { Loader2 } from "lucide-react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -16,22 +17,18 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
-import { Lock } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
+  email: z.string().email(),
+  password: z.string().min(6),
 })
 
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const supabase = createClientComponentClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,24 +42,49 @@ export default function LoginPage() {
     try {
       setIsLoading(true)
       
-      const { error } = await supabase.auth.signInWithPassword({
+      // Sign in with Supabase auth
+      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       })
 
-      if (error) throw error
+      if (signInError) {
+        throw new Error(signInError.message)
+      }
 
+      if (!user) {
+        throw new Error("No user found")
+      }
+
+      // Check if user has admin role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        throw new Error('Error fetching user profile')
+      }
+
+      if (profile?.role !== 'admin') {
+        throw new Error('Unauthorized: You do not have admin privileges')
+      }
+
+      // Show success toast
       toast({
         title: "Success!",
-        description: "You have been logged in.",
+        description: "You have been logged in as admin.",
       })
 
-      router.push("/admin")
-      router.refresh()
+      // Force navigation to admin page
+      window.location.href = "/admin"
+      
     } catch (error) {
+      console.error('Login error:', error)
       toast({
         title: "Error",
-        description: "Invalid email or password.",
+        description: error instanceof Error ? error.message : "Invalid credentials or insufficient privileges",
         variant: "destructive",
       })
     } finally {
@@ -71,19 +93,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container max-w-md mx-auto py-16">
-      <div className="flex flex-col items-center mb-8">
-        <div className="p-3 rounded-full bg-primary/10 mb-4">
-          <Lock className="h-6 w-6 text-primary" />
-        </div>
+    <div className="mx-auto max-w-sm space-y-8">
+      <div className="space-y-2 text-center">
         <h1 className="text-2xl font-bold">Admin Login</h1>
-        <p className="text-muted-foreground mt-2">
-          Sign in to access the admin dashboard
+        <p className="text-muted-foreground">
+          Enter your credentials to access the admin panel
         </p>
       </div>
-
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
@@ -97,7 +115,6 @@ export default function LoginPage() {
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="password"
@@ -111,9 +128,9 @@ export default function LoginPage() {
               </FormItem>
             )}
           />
-
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Sign In
           </Button>
         </form>
       </Form>

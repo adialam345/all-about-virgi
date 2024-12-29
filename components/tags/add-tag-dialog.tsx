@@ -4,7 +4,8 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase"
+import { Loader2, Tag } from "lucide-react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,8 +25,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { Tag } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -34,8 +34,12 @@ const formSchema = z.object({
   description: z.string().optional(),
 })
 
+// Create Supabase client outside component
+const supabase = createClientComponentClient()
+
 export function AddTagDialog() {
   const [open, setOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,45 +50,59 @@ export function AddTagDialog() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsSubmitting(true)
+
+      // Check if tag already exists
+      const { data: existingTag } = await supabase
+        .from('tags')
+        .select('name')
+        .eq('name', values.name.toLowerCase())
+        .single()
+
+      if (existingTag) {
+        throw new Error('Tag already exists')
+      }
+
+      // Insert new tag
       const { error } = await supabase
         .from('tags')
-        .insert({
-          name: values.name,
-          description: values.description,
-        })
+        .insert([
+          {
+            name: values.name.toLowerCase(),
+            description: values.description || null,
+          },
+        ])
 
-      if (error) {
-        console.error('Error inserting tag:', error)
-        throw error
-      }
+      if (error) throw error
 
       toast({
         title: "Success",
-        description: "Tag added successfully",
+        description: "Tag has been added successfully.",
       })
-
-      // Force reload the page to refresh the tags list
-      window.location.reload()
 
       form.reset()
       setOpen(false)
+      window.location.reload()
+
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error adding tag:', error)
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add tag",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="lg">
-          <Tag className="mr-2 h-4 w-4" />
+        <Button variant="outline" className="gap-2">
+          <Tag className="h-4 w-4" />
           Suggest Tag
         </Button>
       </DialogTrigger>
@@ -104,7 +122,11 @@ export function AddTagDialog() {
                 <FormItem>
                   <FormLabel>Tag Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter tag name" {...field} />
+                    <Input 
+                      placeholder="Enter tag name" 
+                      {...field} 
+                      value={field.value || ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -121,6 +143,7 @@ export function AddTagDialog() {
                     <Textarea
                       placeholder="Add more details about this tag..."
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -128,7 +151,10 @@ export function AddTagDialog() {
               )}
             />
 
-            <Button type="submit" className="w-full">Submit</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit
+            </Button>
           </form>
         </Form>
       </DialogContent>

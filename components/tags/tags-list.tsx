@@ -1,30 +1,19 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tag, ThumbsUp, ThumbsDown } from "lucide-react"
+import { useEffect, useState } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Tag, ChevronDown, ChevronRight } from "lucide-react" 
 import { Badge } from "@/components/ui/badge"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-interface TagItem {
-  like: {
-    id: string
-    item_name: string
-    description: string | null
-    is_like: boolean
-  }
-}
+const supabase = createClientComponentClient()
 
-interface Tag {
+type TagWithItems = {
   id: string
   name: string
   description: string | null
-  items?: {
+  items: {
     id: string
     item_name: string
     description: string | null
@@ -32,13 +21,28 @@ interface Tag {
   }[]
 }
 
+interface TagResponse {
+  id: string
+  name: string
+  description: string | null
+  items: {
+    like: {
+      id: string
+      item_name: string
+      description: string | null
+      is_like: boolean
+    }
+  }[]
+}
+
 export function TagsList() {
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
-  const [openTags, setOpenTags] = useState<string[]>([])
+  const [tags, setTags] = useState<TagWithItems[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [expandedTags, setExpandedTags] = useState<string[]>([])
 
   useEffect(() => {
-    async function getTags() {
+    const getTags = async () => {
       try {
         const { data, error } = await supabase
           .from('tags')
@@ -57,24 +61,20 @@ export function TagsList() {
 
         if (error) throw error
 
-        // Transform data to flatten the structure
-        const transformedData = data?.map(tag => ({
+        // Transform the data to flatten the nested structure
+        const transformedTags = (data || []).map((tag: TagResponse) => ({
           ...tag,
           items: tag.items
-            ?.map((item: TagItem) => ({
-              id: item.like.id,
-              item_name: item.like.item_name,
-              description: item.like.description,
-              is_like: item.like.is_like
-            }))
+            ?.map((item: { like: TagResponse['items'][0]['like'] }) => item.like)
             .filter(Boolean) || []
         }))
 
-        setTags(transformedData || [])
+        setTags(transformedTags)
       } catch (error) {
         console.error('Error fetching tags:', error)
+        setError('Failed to load tags')
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -82,80 +82,95 @@ export function TagsList() {
   }, [])
 
   const toggleTag = (tagId: string) => {
-    setOpenTags(prev => 
-      prev.includes(tagId)
+    setExpandedTags(prev => 
+      prev.includes(tagId) 
         ? prev.filter(id => id !== tagId)
         : [...prev, tagId]
     )
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Tag className="h-4 w-4" />
+        Loading tags...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 text-destructive">
+        <Tag className="h-4 w-4" />
+        {error}
+      </div>
+    )
+  }
+
+  if (tags.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Tag className="h-4 w-4" />
+        No tags added yet
+      </div>
+    )
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-2">
-        <Tag className="h-5 w-5" />
-        <div>
-          <CardTitle>Tags</CardTitle>
-          <CardDescription>Categories and labels</CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <div className="space-y-2">
-            {tags.map((tag) => (
-              <Collapsible
-                key={tag.id}
-                open={openTags.includes(tag.id)}
-                onOpenChange={() => toggleTag(tag.id)}
-              >
-                <CollapsibleTrigger asChild>
-                  <Badge 
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80 flex items-center gap-2"
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Tag className="h-4 w-4" />
+        Tags
+      </div>
+      <div className="flex flex-col gap-2">
+        {tags.map((tag) => (
+          <div key={tag.id} className="space-y-1">
+            <Button
+              variant="ghost"
+              className={cn(
+                "flex w-full items-center justify-between p-2",
+                "hover:bg-secondary/80 transition-colors"
+              )}
+              onClick={() => toggleTag(tag.id)}
+            >
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                <span>{tag.name}</span>
+                <Badge variant="secondary" className="ml-2">
+                  {tag.items.length}
+                </Badge>
+              </div>
+              {expandedTags.includes(tag.id) ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+            
+            {expandedTags.includes(tag.id) && tag.items.length > 0 && (
+              <div className="ml-6 space-y-1 border-l pl-4">
+                {tag.items.map((item) => (
+                  <div 
+                    key={item.id}
+                    className="flex items-center gap-2 py-1 text-sm"
                   >
-                    <Tag className="h-3 w-3" />
-                    {tag.name}
-                    {tag.items && tag.items.length > 0 && (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({tag.items.length})
+                    <div className={cn(
+                      "h-2 w-2 rounded-full",
+                      item.is_like ? "bg-green-500" : "bg-red-500"
+                    )} />
+                    <span>{item.item_name}</span>
+                    {item.description && (
+                      <span className="text-muted-foreground">
+                        - {item.description}
                       </span>
                     )}
-                  </Badge>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="mt-2 ml-4 space-y-2">
-                    {tag.items && tag.items.length > 0 ? (
-                      tag.items.map((item) => (
-                        <div key={item.id} className="flex items-start gap-2 p-2 rounded-md border">
-                          {item.is_like ? (
-                            <ThumbsUp className="h-4 w-4 mt-1 text-green-500" />
-                          ) : (
-                            <ThumbsDown className="h-4 w-4 mt-1 text-red-500" />
-                          )}
-                          <div>
-                            <p className="font-medium">{item.item_name}</p>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No items using this tag</p>
-                    )}
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
-            {tags.length === 0 && (
-              <p className="text-muted-foreground">No tags added yet</p>
+                ))}
+              </div>
             )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </div>
   )
 } 

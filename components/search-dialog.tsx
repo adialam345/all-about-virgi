@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ThumbsUp, ThumbsDown, Tag as LucideTag } from "lucide-react"
+import { Search, ThumbsUp, ThumbsDown, Tag as LucideTag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Database } from "@/lib/database.types"
 
@@ -147,11 +147,6 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <ThumbsUp className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Search</DialogTitle>
