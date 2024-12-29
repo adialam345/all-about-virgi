@@ -1,17 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { FunFactCard } from "@/components/funfacts/fun-fact-card"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/components/ui/use-toast"
+import { FunFact } from "@/types"
 import { AddFunFactDialog } from "@/components/funfacts/add-funfact-dialog"
-
-interface FunFact {
-  id: string
-  title: string
-  description: string | null
-  created_at: string
-}
 
 export default function FunFactsPage() {
   const [funFacts, setFunFacts] = useState<FunFact[]>([])
@@ -45,13 +38,20 @@ export default function FunFactsPage() {
 
     // Set up real-time subscription
     const channel = supabase
-      .channel('fun_facts-changes')
+      .channel('fun_facts_changes')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'fun_facts' }, 
-        () => fetchFunFacts()
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'fun_facts' 
+        }, 
+        () => {
+          fetchFunFacts() // Refresh data when changes occur
+        }
       )
       .subscribe()
 
+    // Cleanup subscription on unmount
     return () => {
       channel.unsubscribe()
     }
@@ -75,14 +75,15 @@ export default function FunFactsPage() {
   return (
     <div className="container max-w-5xl py-10">
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xl">✨</span>
-          <h1 className="text-2xl font-bold text-white">Fun Facts About Astrella</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✨</span>
+            <h1 className="text-2xl font-bold text-white">Fun Facts About Astrella</h1>
+          </div>
+          <AddFunFactDialog onSuccess={handleNewFunFact} />
         </div>
         <p className="text-[#a1a1aa]">Interesting and unique things about Astrella</p>
       </div>
-
-      <AddFunFactDialog onSuccess={handleNewFunFact} />
 
       {funFacts.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
@@ -91,11 +92,15 @@ export default function FunFactsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {funFacts.map((fact) => (
-            <FunFactCard
+            <div
               key={fact.id}
-              title={fact.title}
-              description={fact.description}
-            />
+              className="p-6 rounded-lg bg-card border"
+            >
+              <h3 className="text-lg font-semibold mb-2">{fact.title}</h3>
+              {fact.description && (
+                <p className="text-muted-foreground">{fact.description}</p>
+              )}
+            </div>
           ))}
         </div>
       )}

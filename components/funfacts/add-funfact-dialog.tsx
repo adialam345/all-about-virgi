@@ -69,14 +69,26 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
       // Notify parent component for optimistic update
       onSuccess?.(newFunFact)
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('fun_facts')
-        .insert({
+        .insert([{
           title: values.title,
           description: values.description || null,
-        })
+        }])
+        .select('*')
+        .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        throw error
+      }
+
+      console.log('Success:', data)
 
       toast({
         title: "Success!",
@@ -85,13 +97,18 @@ export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
 
       form.reset()
       setOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding fun fact:', error)
       toast({
         title: "Error",
-        description: "Failed to add fun fact. Please try again.",
+        description: error.message || "Failed to add fun fact. Please try again.",
         variant: "destructive",
       })
+      
+      // Rollback optimistic update if needed
+      if (onSuccess) {
+        // You might want to implement a rollback mechanism here
+      }
     } finally {
       setIsSubmitting(false)
     }

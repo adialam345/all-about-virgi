@@ -1,25 +1,35 @@
 'use client';
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Search, Sparkles } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
+import { FunFact } from "@/types"
 import { AddFunFactDialog } from "@/components/funfacts/add-funfact-dialog"
-import { FunFactsTable } from "@/components/funfacts/fun-facts-table"
-
-interface FunFact {
-  id: string
-  title: string
-  description: string | null
-  created_at: string
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Pencil, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ManageFunFacts() {
   const [funFacts, setFunFacts] = useState<FunFact[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const { toast } = useToast()
   const supabase = createClientComponentClient()
 
@@ -49,7 +59,7 @@ export default function ManageFunFacts() {
 
     // Set up real-time subscription
     const channel = supabase
-      .channel('fun_facts-changes')
+      .channel('fun_facts_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'fun_facts' }, 
         () => fetchFunFacts()
@@ -57,74 +67,109 @@ export default function ManageFunFacts() {
       .subscribe()
 
     return () => {
-      channel.unsubscribe()
+      supabase.removeChannel(channel)
     }
-  }, [supabase, toast])
+  }, [])
 
-  const filteredFunFacts = funFacts.filter(fact => 
-    fact.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (fact.description?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-  )
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('fun_facts')
+        .delete()
+        .eq('id', id)
 
-  const handleSuccess = (newFact: FunFact) => {
-    setFunFacts(prev => [newFact, ...prev])
+      if (error) throw error
+
+      // Optimistic update
+      setFunFacts(prev => prev.filter(fact => fact.id !== id))
+
+      toast({
+        title: "Success",
+        description: "Fun fact deleted successfully",
+      })
+    } catch (error) {
+      console.error('Error deleting fun fact:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete fun fact",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteId(null)
+    }
+  }
+
+  if (isLoading) {
+    return <div>Loading...</div>
   }
 
   return (
-    <div className="container py-10">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Manage Fun Facts</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl font-bold">Manage Fun Facts</h1>
+          <p className="text-muted-foreground">
             View, edit, and delete fun facts about Astrella
           </p>
         </div>
-        <AddFunFactDialog onSuccess={handleSuccess} />
+        <AddFunFactDialog onSuccess={fetchFunFacts} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Fun Facts List
-          </CardTitle>
-          <CardDescription>
-            View, edit, and delete fun facts about Astrella
-          </CardDescription>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search fun facts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filteredFunFacts.length} results
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center gap-2">
-                <span className="animate-spin">✨</span>
-                <span>Loading fun facts...</span>
-              </div>
-            </div>
-          ) : filteredFunFacts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? 'No fun facts found matching your search' : 'No fun facts added yet'}
-              </p>
-            </div>
-          ) : (
-            <FunFactsTable funFacts={filteredFunFacts} onRefresh={fetchFunFacts} />
-          )}
-        </CardContent>
-      </Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Created At</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {funFacts.map((fact) => (
+            <TableRow key={fact.id}>
+              <TableCell>{fact.title}</TableCell>
+              <TableCell>{fact.description}</TableCell>
+              <TableCell>{new Date(fact.created_at).toLocaleDateString()}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {/* Handle edit */}}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDeleteId(fact.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the fun fact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && handleDelete(deleteId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -37,6 +37,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { supabase } from "@/lib/supabase-client"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -50,7 +51,11 @@ type TagType = {
   name: string
   description: string | null
   created_at: string
+  created_by: string | null
   item_count: number
+  profiles?: {
+    email: string
+  } | null
 }
 
 export default function ManageTags() {
@@ -62,7 +67,6 @@ export default function ManageTags() {
   const [tagToDelete, setTagToDelete] = useState<TagType | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -194,12 +198,30 @@ export default function ManageTags() {
 
   const handleDelete = async (tag: TagType) => {
     try {
-      const { error } = await supabase
+      setIsSubmitting(true)
+      
+      // First verify admin status
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) throw profileError
+      if (profile?.role !== 'admin') {
+        throw new Error('Unauthorized: Admin privileges required')
+      }
+
+      // Proceed with deletion
+      const { error: deleteError } = await supabase
         .from('tags')
         .delete()
         .eq('id', tag.id)
 
-      if (error) throw error
+      if (deleteError) throw deleteError
 
       toast({
         title: "Success",
@@ -208,13 +230,18 @@ export default function ManageTags() {
       
       setIsDeleteDialogOpen(false)
       setTagToDelete(null)
+      await fetchTags()
     } catch (error) {
       console.error('Error deleting tag:', error)
       toast({
         title: "Error",
-        description: "Failed to delete tag",
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to delete tag. Please ensure you have admin privileges.",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 

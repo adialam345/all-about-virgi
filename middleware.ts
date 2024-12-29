@@ -2,38 +2,52 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
+export async function middleware(request: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createMiddlewareClient({ req: request, res })
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Refresh session if exists
+  const { data: { session } } = await supabase.auth.getSession()
 
-  // Redirect to login if no session
-  if (!session) {
-    return NextResponse.redirect('/login')
+  // List of public paths that don't require authentication
+  const publicPaths = [
+    '/login',
+    '/',
+    '/about',
+    '/funfacts',
+    '/likes',
+    '/tags',
+    // Add other public paths here
+  ]
+
+  // Check if the current path is in the public paths list
+  const isPublicPath = publicPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  )
+
+  // Allow access to public paths without authentication
+  if (isPublicPath) {
+    return res
   }
 
-  // Add role to request header
-  if (session?.user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
-    if (profile?.role === 'admin') {
-      res.headers.set('x-user-role', 'admin')
-    }
+  // Redirect to login if no session and trying to access protected path
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return res
 }
 
+// Configure which paths the middleware should run on
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/api/:path*'
-  ]
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 }
