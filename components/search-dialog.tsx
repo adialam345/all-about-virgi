@@ -9,18 +9,47 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ThumbsUp, ThumbsDown, Tag } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Tag as LucideTag } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Database } from "@/lib/database.types"
+
+interface Tag {
+  id: string
+  name: string
+  description?: string | null
+}
+
+interface TagWrapper {
+  tag: Tag
+}
+
+interface Like {
+  id: string
+  item_name: string
+  description: string | null
+  is_like: boolean
+  tags: {
+    tag: {
+      id: string
+      name: string
+    }
+  }[]
+}
 
 interface SearchResult {
   id: string
   type: "like" | "dislike" | "tag"
   title: string
-  description?: string
-  matchedBy?: string
+  description?: string | null
+  matchedBy: string
+  tags?: {
+    id: string
+    name: string
+  }[]
   relatedItems?: {
     id: string
     title: string
@@ -28,182 +57,149 @@ interface SearchResult {
   }[]
 }
 
-export function SearchDialog({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
-  const [query, setQuery] = useState("")
+interface SearchDialogProps {
+  open: boolean
+  setOpen: (open: boolean) => void
+}
+
+export function SearchDialog({ open, setOpen }: SearchDialogProps) {
+  const [searchTerm, setSearchTerm] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    async function search() {
-      if (!query) {
-        setResults([])
+    if (searchTerm.length === 0) {
+      setResults([])
+      return
+    }
+
+    const fetchData = async () => {
+      const { data: likes, error: likesError } = await supabase
+        .from('likes')
+        .select(`
+          id,
+          item_name,
+          description,
+          is_like,
+          tags:item_tags(
+            tag:tags(
+              id,
+              name
+            )
+          )
+        `)
+        .ilike('item_name', `%${searchTerm}%`)
+
+      const { data: tags, error: tagsError } = await supabase
+        .from('tags')
+        .select(`
+          id,
+          name,
+          description,
+          items:item_tags(
+            like:likes(
+              id,
+              item_name,
+              is_like
+            )
+          )
+        `)
+        .ilike('name', `%${searchTerm}%`)
+
+      if (likesError || tagsError) {
+        console.error(likesError || tagsError)
         return
       }
 
-      setLoading(true)
-      try {
-        // Search in likes/dislikes
-        const { data: likes } = await supabase
-          .from('likes')
-          .select(`
-            id,
-            item_name,
-            description,
-            is_like,
-            tags:item_tags(
-              tag:tags(
-                id,
-                name
-              )
-            )
-          `)
-          .or(`item_name.ilike.%${query}%,description.ilike.%${query}%`)
-          .limit(5)
+      const formattedResults: SearchResult[] = [
+        ...(likes?.map((like: any) => ({
+          id: like.id,
+          type: like.is_like ? ("like" as const) : ("dislike" as const),
+          title: like.item_name,
+          description: like.description,
+          matchedBy: "name",
+          tags: like.tags?.map((tagWrapper: any) => ({
+            id: tagWrapper.tag.id,
+            name: tagWrapper.tag.name
+          }))
+        })) || []),
+        
+        ...(tags?.map((tag: any) => ({
+          id: tag.id,
+          type: "tag" as const,
+          title: tag.name,
+          description: tag.description,
+          matchedBy: "name",
+          relatedItems: tag.items?.map((item: any) => ({
+            id: item.like.id,
+            title: item.like.item_name,
+            type: item.like.is_like ? ("like" as const) : ("dislike" as const)
+          }))
+        })) || [])
+      ]
 
-        // Search in tags
-        const { data: tags } = await supabase
-          .from('tags')
-          .select(`
-            id,
-            name,
-            description,
-            items:item_tags(
-              like:likes(
-                id,
-                item_name,
-                is_like
-              )
-            )
-          `)
-          .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
-          .limit(5)
-
-        const formattedResults: SearchResult[] = [
-          ...(likes?.map(like => ({
-            id: like.id,
-            type: like.is_like ? "like" as const : "dislike" as const,
-            title: like.item_name,
-            description: like.description,
-            matchedBy: like.item_name.toLowerCase().includes(query.toLowerCase()) 
-              ? "name" 
-              : "description",
-            tags: like.tags?.map(t => ({
-              id: t.tag.id,
-              name: t.tag.name
-            })) || []
-          })) || []),
-          ...(tags?.map(tag => ({
-            id: tag.id,
-            type: "tag" as const,
-            title: tag.name,
-            description: tag.description,
-            matchedBy: tag.name.toLowerCase().includes(query.toLowerCase()) 
-              ? "name" 
-              : "description",
-            relatedItems: tag.items?.map(item => ({
-              id: item.like.id,
-              title: item.like.item_name,
-              type: item.like.is_like ? "like" : "dislike"
-            })) || []
-          })) || [])
-        ]
-
-        setResults(formattedResults)
-      } catch (error) {
-        console.error('Search error:', error)
-      } finally {
-        setLoading(false)
-      }
+      setResults(formattedResults)
     }
 
-    const timeoutId = setTimeout(search, 300)
+    const timeoutId = setTimeout(fetchData, 300)
     return () => clearTimeout(timeoutId)
-  }, [query])
-
-  function handleSelect(result: SearchResult) {
-    setOpen(false)
-    setQuery("")
-    
-    switch (result.type) {
-      case "like":
-      case "dislike":
-        router.push(`/likes?highlight=${result.id}`)
-        break
-      case "tag":
-        router.push(`/tags/${result.id}`)
-        break
-    }
-  }
+  }, [searchTerm])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <ThumbsUp className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Search</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
           <Input
-            placeholder="Search likes, dislikes, or tags..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-10"
+            placeholder="Search likes, dislikes, tags..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mt-2"
           />
-          <ScrollArea className="h-[300px] rounded-md border p-2">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">Searching...</p>
-              </div>
-            ) : results.length > 0 ? (
-              <div className="space-y-4">
-                {results.map((result) => (
-                  <div key={result.id} className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => handleSelect(result)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {result.type === "like" && <ThumbsUp className="h-4 w-4 text-green-500" />}
-                        {result.type === "dislike" && <ThumbsDown className="h-4 w-4 text-red-500" />}
-                        {result.type === "tag" && <Tag className="h-4 w-4" />}
-                        <div className="text-left">
-                          <p className="font-medium">{result.title}</p>
-                          {result.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {result.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Button>
-                    
-                    {/* Show related items for tags */}
-                    {result.type === "tag" && result.relatedItems && result.relatedItems.length > 0 && (
-                      <div className="ml-6 pl-2 border-l space-y-1">
-                        <p className="text-xs text-muted-foreground">Related items:</p>
-                        {result.relatedItems.map(item => (
-                          <div key={item.id} className="flex items-center gap-2 text-sm">
-                            {item.type === "like" ? (
-                              <ThumbsUp className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <ThumbsDown className="h-3 w-3 text-red-500" />
-                            )}
-                            <span>{item.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+        </DialogHeader>
+        <ScrollArea className="mt-4 max-h-80">
+          {results.length > 0 ? (
+            results.map(result => (
+              <div key={result.id} className="p-4 border-b last:border-b-0">
+                <h3 className="text-lg font-semibold">{result.title}</h3>
+                {result.description && (
+                  <p className="text-sm text-muted-foreground">{result.description}</p>
+                )}
+                {result.tags && result.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {result.tags.map(tag => (
+                      <LucideTag key={tag.id} className="h-4 w-4 text-blue-500" />
+                    ))}
                   </div>
-                ))}
+                )}
+                {result.relatedItems && result.relatedItems.length > 0 && (
+                  <div className="mt-2">
+                    <h4 className="text-sm font-semibold">Related Items:</h4>
+                    <ul className="list-disc list-inside">
+                      {result.relatedItems.map(item => (
+                        <li key={item.id} className="flex items-center">
+                          {item.type === "like" ? (
+                            <ThumbsUp className="inline h-4 w-4 mr-1 text-green-500" />
+                          ) : (
+                            <ThumbsDown className="inline h-4 w-4 mr-1 text-red-500" />
+                          )}
+                          {item.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            ) : query ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">No results found</p>
-              </div>
-            ) : null}
-          </ScrollArea>
-        </div>
+            ))
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">No results found.</p>
+          )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

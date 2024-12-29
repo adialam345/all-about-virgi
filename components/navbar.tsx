@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Star, Heart, Tags, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { SearchDialog } from "@/components/search-dialog"
+import { SearchDialog } from '@/components/search-dialog'
 
 export function Navbar() {
   const pathname = usePathname()

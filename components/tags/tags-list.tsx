@@ -11,6 +11,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
+interface TagItem {
+  like: {
+    id: string
+    item_name: string
+    description: string | null
+    is_like: boolean
+  }
+}
+
 interface Tag {
   id: string
   name: string
@@ -52,7 +61,7 @@ export function TagsList() {
         const transformedData = data?.map(tag => ({
           ...tag,
           items: tag.items
-            ?.map(item => ({
+            ?.map((item: TagItem) => ({
               id: item.like.id,
               item_name: item.like.item_name,
               description: item.like.description,
