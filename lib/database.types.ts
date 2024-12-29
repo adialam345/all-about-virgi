@@ -101,6 +101,26 @@ export interface Database {
           tag_id?: string
         }
       }
+      fun_facts: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

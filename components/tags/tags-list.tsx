@@ -129,21 +129,23 @@ export function TagsList() {
               variant="ghost"
               className={cn(
                 "flex w-full items-center justify-between p-2",
-                "hover:bg-secondary/80 transition-colors"
+                "hover:bg-secondary/80 transition-colors",
+                "group relative overflow-hidden",
+                expandedTags.includes(tag.id) && "bg-secondary"
               )}
               onClick={() => toggleTag(tag.id)}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative z-10">
                 <Tag className="h-4 w-4" />
                 <span>{tag.name}</span>
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ml-2 transition-colors group-hover:bg-background/80">
                   {tag.items.length}
                 </Badge>
               </div>
               {expandedTags.includes(tag.id) ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 transition-transform" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               )}
             </Button>
             
