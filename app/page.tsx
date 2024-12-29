@@ -32,13 +32,13 @@ export default function Home() {
             </AvatarFallback>
           </Avatar>
           <div className="absolute bottom-0 right-0 rounded-full bg-background p-2 ring-4 ring-background">
-            <Badge variant="secondary">JKT48</Badge>
+            <Badge variant="secondary">13th&nbsp;GEN</Badge>
           </div>
         </div>
         <div>
           <h1 className="text-4xl font-bold">Astrella Virgi</h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            Indonesian idol and content creator
+          Suka berekspresi melalui kreasi, Tara! Aku Virgi
           </p>
         </div>
         <div className="flex gap-4">
