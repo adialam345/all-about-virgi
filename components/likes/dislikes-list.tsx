@@ -1,30 +1,55 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThumbsDown } from "lucide-react"
+import { Tag, ThumbsDown } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface Dislike {
   id: string
   item_name: string
   description: string
+  tags: {
+    id: string
+    name: string
+  }[]
 }
 
 export function DislikesList() {
   const [dislikes, setDislikes] = useState<Dislike[]>([])
   const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
+  const highlightId = searchParams.get('highlight')
 
   useEffect(() => {
     async function getDislikes() {
       try {
         const { data, error } = await supabase
           .from('likes')
-          .select('*')
+          .select(`
+            *,
+            tags:item_tags(
+              tag:tags(
+                id,
+                name
+              )
+            )
+          `)
           .eq('is_like', false)
 
         if (error) throw error
-        setDislikes(data || [])
+
+        const transformedData = data?.map(dislike => ({
+          ...dislike,
+          tags: dislike.tags
+            ?.map(t => t.tag)
+            .filter(Boolean) || []
+        }))
+
+        setDislikes(transformedData || [])
       } catch (error) {
         console.error('Error fetching dislikes:', error)
       } finally {
@@ -34,6 +59,15 @@ export function DislikesList() {
 
     getDislikes()
   }, [])
+
+  useEffect(() => {
+    if (highlightId) {
+      const element = document.getElementById(highlightId)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  }, [highlightId, dislikes])
 
   return (
     <Card>
@@ -50,11 +84,30 @@ export function DislikesList() {
         ) : (
           <div className="space-y-4">
             {dislikes.map((dislike) => (
-              <div key={dislike.id} className="rounded-lg border p-4">
+              <div
+                key={dislike.id}
+                id={dislike.id}
+                className={cn(
+                  "rounded-lg border p-4 transition-colors",
+                  highlightId === dislike.id && "bg-muted"
+                )}
+              >
                 <h3 className="font-semibold">{dislike.item_name}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-3 max-w-[65ch]">
-                  {dislike.description}
-                </p>
+                {dislike.description && (
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-3 max-w-[65ch]">
+                    {dislike.description}
+                  </p>
+                )}
+                {dislike.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {dislike.tags.map((tag) => (
+                      <Badge key={tag.id} variant="secondary" className="flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {dislikes.length === 0 && (

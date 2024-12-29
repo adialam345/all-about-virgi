@@ -1,13 +1,16 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Star, Heart, Tags, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Search, Heart, Star, Tags } from "lucide-react"
+import { SearchDialog } from "@/components/search-dialog"
 
 export function Navbar() {
   const pathname = usePathname()
+  const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -45,11 +48,16 @@ export function Navbar() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <Button variant="ghost" size="icon">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setSearchOpen(true)}
+          >
             <Search className="h-4 w-4" />
           </Button>
         </div>
       </div>
+      <SearchDialog open={searchOpen} setOpen={setSearchOpen} />
     </header>
   )
 }
