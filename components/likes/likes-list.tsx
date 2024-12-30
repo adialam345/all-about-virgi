@@ -71,8 +71,8 @@ export function LikesList() {
   useEffect(() => {
     fetchLikes()
 
-    // Set up real-time subscription
-    const channel = supabase
+    // Set up real-time subscription for likes table
+    const likesChannel = supabase
       .channel('likes_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'likes' }, 
@@ -80,8 +80,18 @@ export function LikesList() {
       )
       .subscribe()
 
+    // Add subscription for item_tags table
+    const itemTagsChannel = supabase
+      .channel('item_tags_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'item_tags' },
+        () => fetchLikes()
+      )
+      .subscribe()
+
     return () => {
-      channel.unsubscribe()
+      likesChannel.unsubscribe()
+      itemTagsChannel.unsubscribe()
     }
   }, [])
 

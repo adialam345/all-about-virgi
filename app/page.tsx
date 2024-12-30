@@ -1,7 +1,7 @@
 "use client"
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { User, Sparkles } from "lucide-react"
+import { User, Sparkles, Star, Heart } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddLikeDislikeDialog } from "@/components/likes/add-like-dislike-dialog"
@@ -16,39 +16,129 @@ import { SuggestTagDialog } from "@/components/tags/suggest-tag-dialog"
 import { FunFactsList } from "@/components/funfacts/fun-facts-list"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
+import { motion } from "framer-motion"
+import { useQueryClient } from '@tanstack/react-query'
+
+interface AnimatedElementProps {
+  children: React.ReactNode;
+  delay?: number;
+}
+
+const FloatingElement = ({ children, delay = 0 }: AnimatedElementProps) => {
+  return (
+    <motion.div
+      animate={{
+        y: [0, -10, 0],
+      }}
+      transition={{
+        duration: 4,
+        repeat: Infinity,
+        repeatType: "reverse",
+        ease: "easeInOut",
+        delay,
+      }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+const RotatingElement = ({ children, delay = 0 }: AnimatedElementProps) => {
+  return (
+    <motion.div
+      animate={{
+        rotate: 360,
+      }}
+      transition={{
+        duration: 8,
+        repeat: Infinity,
+        ease: "linear",
+        delay,
+      }}
+    >
+      {children}
+    </motion.div>
+  )
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('about')
+  const queryClient = useQueryClient()
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
+    queryClient.invalidateQueries({ queryKey: ['likes'] })
+    queryClient.invalidateQueries({ queryKey: ['dislikes'] })
+    queryClient.invalidateQueries({ queryKey: ['tags'] })
   }
 
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col items-center gap-6 text-center mb-12">
         <div className="relative">
-          <Avatar className="h-48 w-48 overflow-hidden ring-4 ring-background">
-            <Image
-              src="/astrella.jpg"
-              alt="Astrella Virgi"
-              width={240}
-              height={240}
-              className="aspect-square rounded-full object-cover scale-110"
-              priority
-            />
-            <AvatarFallback>
-              <User className="h-24 w-24" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="absolute bottom-0 right-0 rounded-full bg-background p-2 ring-4 ring-background">
-            <Badge variant="secondary">13th&nbsp;GEN</Badge>
-          </div>
+          <FloatingElement>
+            <Avatar className="h-48 w-48 overflow-hidden ring-4 ring-background">
+              <Image
+                src="/astrella.jpg"
+                alt="Astrella Virgi"
+                width={240}
+                height={240}
+                className="aspect-square rounded-full object-cover scale-110"
+                priority
+              />
+              <AvatarFallback>
+                <User className="h-24 w-24" />
+              </AvatarFallback>
+            </Avatar>
+          </FloatingElement>
+
+          {/* Decorative Elements */}
+          <motion.div 
+            className="absolute -top-4 -right-4"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <RotatingElement delay={0.1}>
+              <Sparkles className="h-8 w-8 text-yellow-500" />
+            </RotatingElement>
+          </motion.div>
+
+          <motion.div 
+            className="absolute -bottom-2 -left-4"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <RotatingElement delay={0.3}>
+              <Star className="h-6 w-6 text-pink-500" />
+            </RotatingElement>
+          </motion.div>
+
+          <motion.div 
+            className="absolute top-0 -left-6"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            <RotatingElement delay={0.5}>
+              <Heart className="h-7 w-7 text-red-500" />
+            </RotatingElement>
+          </motion.div>
+
+          <motion.div
+            className="absolute bottom-0 right-0 rounded-full bg-background p-2 ring-4 ring-background"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.8 }}
+          >
+            <Badge variant="secondary" className="animate-pulse">13th&nbsp;GEN</Badge>
+          </motion.div>
         </div>
         <div>
           <h1 className="text-4xl font-bold">Astrella Virgi</h1>
           <p className="mt-2 text-lg text-muted-foreground">
-          Suka berekspresi melalui kreasi, Tara! Aku Virgi
+            Suka berekspresi melalui kreasi, Tara! Aku Virgi
           </p>
         </div>
         <div className="flex gap-4">
