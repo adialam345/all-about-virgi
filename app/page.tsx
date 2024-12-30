@@ -1,7 +1,7 @@
 "use client"
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { User, Sparkles, Star, Heart } from "lucide-react"
+import { User, Sparkles, Star, Heart, Twitter, Instagram } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddLikeDislikeDialog } from "@/components/likes/add-like-dislike-dialog"
@@ -181,13 +181,12 @@ export default function Home() {
         </TabsList>
         
         <div className="mt-6">
-          <TabsContent value="about" className="space-y-6">
+          <TabsContent value="about" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>About Astrella</CardTitle>
-                <CardDescription>Basic information and quick facts</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-6">
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <h3 className="font-semibold">Nama</h3>
@@ -214,6 +213,47 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold">Tinggi Badan</h3>
                     <p className="text-muted-foreground">162cm</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Social Media</h3>
+                  <div className="flex flex-col gap-2">
+                    <a 
+                      href="https://x.com/A_VirgiJKT48" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-blue-500 hover:underline"
+                    >
+                      <Twitter className="h-4 w-4" />
+                      @A_VirgiJKT48
+                    </a>
+                    
+                    <a 
+                      href="https://www.instagram.com/virgi.jkt48/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-pink-500 hover:underline"
+                    >
+                      <Instagram className="h-4 w-4" />
+                      @virgi.jkt48
+                    </a>
+                    
+                    <a 
+                      href="https://www.tiktok.com/@jkt48.virgi" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-gray-800 hover:underline"
+                    >
+                      <svg 
+                        className="h-4 w-4" 
+                        viewBox="0 0 24 24" 
+                        fill="currentColor"
+                      >
+                        <path d="M19.321 5.562a5.122 5.122 0 0 1 0 7.245a5.122 5.122 0 0 1-7.245 0a5.122 5.122 0 0 1 0-7.245a5.122 5.122 0 0 1 7.245 0"/>
+                      </svg>
+                      @jkt48.virgi
+                    </a>
                   </div>
                 </div>
               </CardContent>
