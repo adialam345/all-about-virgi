@@ -5,6 +5,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from 'next/router'
 
 type LikeDislikeProps = {
   itemName: string
@@ -14,6 +15,7 @@ type LikeDislikeProps = {
 export function LikeDislike({ itemName, description }: LikeDislikeProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleInteraction = async (isLike: boolean) => {
     try {
@@ -36,6 +38,9 @@ export function LikeDislike({ itemName, description }: LikeDislikeProps) {
         title: "Success!",
         description: `${isLike ? 'Like' : 'Dislike'} recorded successfully.`,
       })
+
+      // Use replace instead of push to avoid adding to history
+      router.replace('/')
 
     } catch (error) {
       console.error('Error:', error)

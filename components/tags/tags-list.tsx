@@ -118,10 +118,7 @@ export function TagsList() {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Tag className="h-4 w-4" />
-        Tags
-      </div>
+
       <div className="flex flex-col gap-2">
         {tags.map((tag) => (
           <div key={tag.id} className="space-y-1">

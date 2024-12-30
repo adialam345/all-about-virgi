@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tag, ThumbsDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Dislike {
   id: string
@@ -28,43 +29,58 @@ interface TagItem {
 export function DislikesList() {
   const [dislikes, setDislikes] = useState<Dislike[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc')
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('highlight')
 
-  useEffect(() => {
-    async function getDislikes() {
-      try {
-        const { data, error } = await supabase
-          .from('likes')
-          .select(`
-            *,
-            tags:item_tags(
-              tag:tags(
-                id,
-                name
-              )
+  const fetchDislikes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('likes')
+        .select(`
+          *,
+          tags:item_tags(
+            tag:tags(
+              id,
+              name
             )
-          `)
-          .eq('is_like', false)
+          )
+        `)
+        .eq('is_like', false)
+        .order('created_at', { ascending: sortOrder === 'asc' })
 
-        if (error) throw error
+      if (error) throw error
 
-        const transformedData = data?.map(dislike => ({
-          ...dislike,
-          tags: dislike.tags
-            ?.map((t: TagItem) => t.tag)
-            .filter(Boolean) || []
-        }))
+      const transformedData = data?.map(dislike => ({
+        ...dislike,
+        tags: dislike.tags
+          ?.map((t: TagItem) => t.tag)
+          .filter(Boolean) || []
+      }))
 
-        setDislikes(transformedData || [])
-      } catch (error) {
-        console.error('Error fetching dislikes:', error)
-      } finally {
-        setLoading(false)
-      }
+      setDislikes(transformedData || [])
+    } catch (error) {
+      console.error('Error fetching dislikes:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    getDislikes()
+  useEffect(() => {
+    fetchDislikes()
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('dislikes_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes' }, 
+        () => fetchDislikes()
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -76,14 +92,32 @@ export function DislikesList() {
     }
   }, [highlightId, dislikes])
 
+  useEffect(() => {
+    fetchDislikes()
+  }, [sortOrder])
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center gap-2">
-        <ThumbsDown className="h-5 w-5 text-red-500" />
-        <div>
-          <CardTitle>Dislikes</CardTitle>
-          <CardDescription>Things that Astrella doesn't like</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ThumbsDown className="h-5 w-5 text-red-500" />
+          <div>
+            <CardTitle>Dislikes</CardTitle>
+            <CardDescription>Things that Astrella doesn't like</CardDescription>
+          </div>
         </div>
+        <Select
+          value={sortOrder}
+          onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Newest First</SelectItem>
+            <SelectItem value="asc">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
         {loading ? (

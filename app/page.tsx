@@ -1,3 +1,5 @@
+"use client"
+
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { User, Sparkles } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,8 +14,16 @@ import { Badge } from "@/components/ui/badge"
 import { AddFunFactDialog } from "@/components/funfacts/add-funfact-dialog"
 import { SuggestTagDialog } from "@/components/tags/suggest-tag-dialog"
 import { FunFactsList } from "@/components/funfacts/fun-facts-list"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('about')
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col items-center gap-6 text-center mb-12">
@@ -46,7 +56,7 @@ export default function Home() {
         </div>
       </section>
 
-      <Tabs defaultValue="about" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-5 h-14">
           <TabsTrigger 
             value="about"

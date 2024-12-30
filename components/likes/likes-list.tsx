@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tag, ThumbsUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Like {
   id: string
@@ -28,43 +30,59 @@ interface TagItem {
 export function LikesList() {
   const [likes, setLikes] = useState<Like[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc')
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('highlight')
+  const supabase = createClientComponentClient()
+
+  const fetchLikes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('likes')
+        .select(`
+          *,
+          tags:item_tags(
+            tag:tags(
+              id,
+              name
+            )
+          )
+        `)
+        .eq('is_like', true)
+        .order('created_at', { ascending: sortOrder === 'asc' })
+
+      if (error) throw error
+
+      const transformedData = data?.map(like => ({
+        ...like,
+        tags: like.tags
+          ?.map((t: TagItem) => t.tag)
+          .filter(Boolean) || []
+      }))
+
+      setLikes(transformedData || [])
+    } catch (error) {
+      console.error('Error fetching likes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function getLikes() {
-      try {
-        const { data, error } = await supabase
-          .from('likes')
-          .select(`
-            *,
-            tags:item_tags(
-              tag:tags(
-                id,
-                name
-              )
-            )
-          `)
-          .eq('is_like', true)
+    fetchLikes()
 
-        if (error) throw error
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('likes_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes' }, 
+        () => fetchLikes()
+      )
+      .subscribe()
 
-        const transformedData = data?.map(like => ({
-          ...like,
-          tags: like.tags
-            ?.map((t: TagItem) => t.tag)
-            .filter(Boolean) || []
-        }))
-
-        setLikes(transformedData || [])
-      } catch (error) {
-        console.error('Error fetching likes:', error)
-      } finally {
-        setLoading(false)
-      }
+    return () => {
+      channel.unsubscribe()
     }
-
-    getLikes()
   }, [])
 
   useEffect(() => {
@@ -76,14 +94,32 @@ export function LikesList() {
     }
   }, [highlightId, likes])
 
+  useEffect(() => {
+    fetchLikes()
+  }, [sortOrder])
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center gap-2">
-        <ThumbsUp className="h-5 w-5 text-green-500" />
-        <div>
-          <CardTitle>Likes</CardTitle>
-          <CardDescription>Things that Astrella loves</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ThumbsUp className="h-5 w-5 text-green-500" />
+          <div>
+            <CardTitle>Likes</CardTitle>
+            <CardDescription>Things that Astrella loves</CardDescription>
+          </div>
         </div>
+        <Select
+          value={sortOrder}
+          onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Newest First</SelectItem>
+            <SelectItem value="asc">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
         {loading ? (

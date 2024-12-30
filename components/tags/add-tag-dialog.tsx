@@ -1,11 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Loader2, Tag } from "lucide-react"
-import { supabase } from "@/lib/supabase-client"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,87 +11,44 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/lib/supabase"
 
-const formSchema = z.object({
-  selectedTags: z.array(z.string()).min(1, {
-    message: "Please select at least one tag.",
-  }),
-})
-
-type AddTagDialogProps = {
-  likeId: string
-  existingTags?: string[]
-}
-
-export function AddTagDialog({ likeId, existingTags = [] }: AddTagDialogProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function AddTagDialog() {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [availableTags, setAvailableTags] = useState<Array<{ id: string; name: string }>>([])
   const { toast } = useToast()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      selectedTags: [],
-    },
-  })
-
-  const loadTags = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('id, name')
-        .order('name')
-
-      if (error) throw error
-      setAvailableTags((data || []) as Array<{ id: string; name: string }>)
-    } catch (error) {
-      console.error('Error loading tags:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load tags",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
     try {
       setIsSubmitting(true)
 
-      // Prepare the item_tags entries
-      const itemTags = values.selectedTags.map(tagId => ({
-        like_id: likeId,
-        tag_id: tagId
-      }))
-
-      // Insert the item_tags
       const { error } = await supabase
-        .from('item_tags')
-        .insert(itemTags)
+        .from('tags')
+        .insert({ name, description })
 
       if (error) throw error
 
       toast({
         title: "Success",
-        description: "Tags added successfully",
+        description: "Tag has been added successfully",
       })
-      setIsOpen(false)
-      form.reset()
+
+      setName("")
+      setDescription("")
+      setOpen(false)
     } catch (error) {
-      console.error('Error adding tags:', error)
+      console.error('Error:', error)
       toast({
         title: "Error",
-        description: "Failed to add tags",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -104,66 +57,41 @@ export function AddTagDialog({ likeId, existingTags = [] }: AddTagDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open)
-      if (open) loadTags()
-      if (!open) form.reset()
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Tag className="h-4 w-4" />
-          Suggest Tags
+        <Button variant="outline" size="icon">
+          <Plus className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Tags</DialogTitle>
+          <DialogTitle>Add New Tag</DialogTitle>
           <DialogDescription>
-            Select tags that describe this item.
+            Create a new tag to categorize likes and dislikes
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="selectedTags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      {availableTags.map((tag) => (
-                        <label
-                          key={tag.id}
-                          className="flex items-center gap-2 rounded-lg border p-3 hover:bg-secondary"
-                        >
-                          <input
-                            type="checkbox"
-                            value={tag.id}
-                            checked={field.value.includes(tag.id)}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              const newValue = e.target.checked
-                                ? [...field.value, value]
-                                : field.value.filter((v) => v !== value)
-                              field.onChange(newValue)
-                            }}
-                          />
-                          {tag.name}
-                        </label>
-                      ))}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
             />
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Submit
-            </Button>
-          </form>
-        </Form>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add Tag"}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   )
