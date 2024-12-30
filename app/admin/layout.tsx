@@ -1,6 +1,10 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Heart, Tag, Sparkles } from "lucide-react"
+import { headers } from 'next/headers'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 const sidebarNavItems = [
   {
@@ -25,11 +29,36 @@ const sidebarNavItems = [
   },
 ]
 
-export default function AdminLayout({
+async function checkAdminAccess() {
+  const supabase = createServerComponentClient({ cookies })
+  
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    redirect('/login')
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    redirect('/')
+  }
+}
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  await checkAdminAccess()
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}

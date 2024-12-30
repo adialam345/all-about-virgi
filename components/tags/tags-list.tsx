@@ -41,44 +41,80 @@ export function TagsList() {
   const [error, setError] = useState<string | null>(null)
   const [expandedTags, setExpandedTags] = useState<string[]>([])
 
-  useEffect(() => {
-    const getTags = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('tags')
-          .select(`
-            *,
-            items:item_tags(
-              like:likes(
-                id,
-                item_name,
-                description,
-                is_like
-              )
+  const getTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .select(`
+          *,
+          items:item_tags(
+            like:likes(
+              id,
+              item_name,
+              description,
+              is_like
             )
-          `)
-          .order('name', { ascending: true })
+          )
+        `)
+        .order('name', { ascending: true })
 
-        if (error) throw error
+      if (error) throw error
 
-        // Transform the data to flatten the nested structure
-        const transformedTags = (data || []).map((tag: TagResponse) => ({
-          ...tag,
-          items: tag.items
-            ?.map((item: { like: TagResponse['items'][0]['like'] }) => item.like)
-            .filter(Boolean) || []
-        }))
+      // Transform the data to flatten the nested structure
+      const transformedTags = (data || []).map((tag: TagResponse) => ({
+        ...tag,
+        items: tag.items
+          ?.map((item: { like: TagResponse['items'][0]['like'] }) => item.like)
+          .filter(Boolean) || []
+      }))
 
-        setTags(transformedTags)
-      } catch (error) {
-        console.error('Error fetching tags:', error)
-        setError('Failed to load tags')
-      } finally {
-        setIsLoading(false)
-      }
+      setTags(transformedTags)
+    } catch (error) {
+      console.error('Error fetching tags:', error)
+      setError('Failed to load tags')
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     getTags()
+
+    // Set up real-time subscription for tags table
+    const tagsChannel = supabase
+      .channel('tags_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'tags' 
+        }, 
+        () => {
+          getTags() // Refresh data when tags change
+        }
+      )
+      .subscribe()
+
+    // Set up real-time subscription for item_tags table
+    const itemTagsChannel = supabase
+      .channel('item_tags_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'item_tags' 
+        }, 
+        () => {
+          getTags() // Refresh data when item_tags change
+        }
+      )
+      .subscribe()
+
+    // Cleanup subscriptions
+    return () => {
+      tagsChannel.unsubscribe()
+      itemTagsChannel.unsubscribe()
+    }
   }, [])
 
   const toggleTag = (tagId: string) => {
@@ -118,7 +154,6 @@ export function TagsList() {
 
   return (
     <div className="space-y-2">
-
       <div className="flex flex-col gap-2">
         {tags.map((tag) => (
           <div key={tag.id} className="space-y-1">

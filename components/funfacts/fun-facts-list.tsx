@@ -5,6 +5,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Card } from "@/components/ui/card"
 import { Sparkles } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { useSearchParams } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 interface FunFact {
   id: string
@@ -18,6 +20,8 @@ export function FunFactsList() {
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
   const supabase = createClientComponentClient()
+  const searchParams = useSearchParams()
+  const highlightedId = searchParams.get('highlight')
 
   useEffect(() => {
     async function fetchFunFacts() {
@@ -81,7 +85,13 @@ export function FunFactsList() {
       {funFacts.map((fact) => (
         <Card 
           key={fact.id}
-          className="p-4 border-2 border-primary/20 hover:border-primary/40 transition-colors"
+          id={`funfact-${fact.id}`}
+          className={cn(
+            "p-4 border-2 transition-all duration-300",
+            highlightedId === fact.id 
+              ? "border-primary bg-primary/5 shadow-lg" 
+              : "border-primary/20 hover:border-primary/40"
+          )}
         >
           <h3 className="font-semibold flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />
