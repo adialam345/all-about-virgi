@@ -1,22 +1,16 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from '@/components/navbar'
 import { Toaster } from "@/components/ui/toaster"
-import { headers, cookies } from 'next/headers'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-
-import { cn } from "@/lib/utils"
+import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Astrella Virgi Archive',
-  description: 'A comprehensive archive of information about Astrella Virgi',
+  title: 'Virgi',
+  description: 'Suka berekspresi melalui kreasi, Tara! Aku Virgi',
 }
-
-export const dynamic = 'force-dynamic'
 
 export default function RootLayout({
   children,
@@ -25,20 +19,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(
-        "min-h-screen font-sans antialiased",
-        "background-gradient",
-      )}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Navbar />
-          {children}
+      <body className={inter.className}>
+        <Providers>
+          <div className="relative min-h-screen bg-background">
+            <div className="relative z-10">
+              <Navbar />
+              <main className="container py-6 md:py-8">{children}</main>
+            </div>
+            <div className="fixed inset-0 z-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+          </div>
           <Toaster />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )

@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ThumbsUp, ThumbsDown, Tag, Sparkles } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { ThumbsUp, ThumbsDown, Tag, Sparkles, Search } from "lucide-react"
+import supabase from "@/utils/supabase"
 import { 
   Dialog, 
   DialogContent, 
@@ -13,6 +13,7 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface SearchDialogProps {
   open: boolean
@@ -45,13 +46,14 @@ function getResultIcon(type: 'like' | 'dislike' | 'tag' | 'fun_fact') {
     case 'tag':
       return <Tag className="h-4 w-4 text-blue-500" />
     case 'fun_fact':
-      return <Sparkles className="h-4 w-4 text-yellow-500" />
+      return <Sparkles className="h-4 w-4 text-yellow-500 sparkle" />
   }
 }
 
 export function SearchDialog({ open, setOpen }: SearchDialogProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
       return
     }
 
+    setIsLoading(true)
     const fetchData = async () => {
       // Fetch likes and dislikes
       const { data: likes, error: likesError } = await supabase
@@ -145,9 +148,14 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
       ]
 
       setResults(formattedResults)
+      setIsLoading(false)
     }
 
-    fetchData()
+    const debounce = setTimeout(() => {
+      fetchData()
+    }, 300)
+
+    return () => clearTimeout(debounce)
   }, [searchTerm])
 
   const handleSelect = (item: any) => {
@@ -180,53 +188,115 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Search</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="glass sm:max-w-[425px] border-none shadow-2xl bg-gradient-to-br from-background/80 via-background/50 to-background/80">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <div className="p-1.5 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl shadow-lg">
+              <Search className="h-5 w-5 text-primary" />
+            </div>
+            <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent animate-gradient">
+              Search
+            </span>
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground/90 font-medium">
             Search for likes, dislikes, tags, and fun facts
           </DialogDescription>
         </DialogHeader>
         
-        <Command className="rounded-lg border shadow-md">
+        <Command className="rounded-xl border-none bg-background/30 backdrop-blur-xl shadow-xl">
           <CommandInput
             placeholder="Type to search..."
             value={searchTerm}
             onValueChange={setSearchTerm}
+            className="border-none focus:ring-0 h-11 text-base font-medium bg-transparent"
           />
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup className="max-h-[300px] overflow-y-auto p-2">
-            {results.map((result) => (
-              <CommandItem
-                key={result.id}
-                value={`${result.type}-${result.id}-${result.title}`}
-                onSelect={() => handleSelect(result)}
-                className="flex flex-col items-start gap-1 px-4 py-2"
-              >
-                <div className="flex w-full items-center gap-2">
-                  {getResultIcon(result.type)}
-                  <span className="flex-1">{result.title}</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {result.type === 'fun_fact' ? 'Fun Fact' : result.type}
-                  </Badge>
-                </div>
-                {result.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-1 pl-6">
-                    {result.description}
-                  </p>
-                )}
-                {result.tags && result.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pl-6">
-                    {result.tags.map((tag) => (
-                      <Badge key={tag.id} variant="outline" className="flex items-center gap-1">
-                        <Tag className="h-3 w-3" />
-                        {tag.name}
+          <CommandEmpty className="py-8 text-center text-muted-foreground">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-3 text-base">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="text-primary"
+                >
+                  <Search className="h-5 w-5" />
+                </motion.div>
+                Searching...
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-base">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-muted-foreground/70"
+                >
+                  <Search className="h-12 w-12" />
+                </motion.div>
+                No results found.
+              </div>
+            )}
+          </CommandEmpty>
+          <CommandGroup className="max-h-[400px] overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+            <AnimatePresence>
+              {results.map((result, index) => (
+                <motion.div
+                  key={result.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <CommandItem
+                    value={`${result.type}-${result.id}-${result.title}`}
+                    onSelect={() => handleSelect(result)}
+                    className="flex flex-col items-start gap-2 p-4 rounded-lg hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 transition-all duration-300 group"
+                  >
+                    <div className="flex w-full items-center gap-3">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-background/80 to-background/40 shadow-lg group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300">
+                        {getResultIcon(result.type)}
+                      </div>
+                      <span className="flex-1 font-medium text-base">{result.title}</span>
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-auto glass bg-gradient-to-br from-primary/10 to-secondary/10 group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300 text-xs font-medium px-3 py-1"
+                      >
+                        {result.type === 'fun_fact' ? 'Fun Fact' : result.type}
                       </Badge>
-                    ))}
-                  </div>
-                )}
-              </CommandItem>
-            ))}
+                    </div>
+                    {result.description && (
+                      <p className="text-sm text-muted-foreground/80 line-clamp-2 pl-9 pr-4">
+                        {result.description}
+                      </p>
+                    )}
+                    {result.tags && result.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pl-9">
+                        {result.tags.map(tag => (
+                          <Badge 
+                            key={tag.id}
+                            variant="outline" 
+                            className="bg-background/50 text-xs hover:bg-primary/10 transition-colors duration-300"
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {result.relatedItems && result.relatedItems.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pl-9">
+                        {result.relatedItems.map(item => (
+                          <Badge 
+                            key={item.id}
+                            variant="outline" 
+                            className="bg-background/50 text-xs hover:bg-primary/10 transition-colors duration-300"
+                          >
+                            {item.title}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CommandItem>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </CommandGroup>
         </Command>
       </DialogContent>

@@ -111,10 +111,9 @@ export function LikesList() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ThumbsUp className="h-5 w-5 text-green-500" />
+        <div className="flex items-center gap-3">
+          <ThumbsUp className="h-10 w-10 text-green-500" />
           <div>
-            <CardTitle>Likes</CardTitle>
             <CardDescription>Things that Astrella loves</CardDescription>
           </div>
         </div>

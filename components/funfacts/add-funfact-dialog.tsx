@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Plus, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,154 +12,123 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Loader2, Sparkles } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useToast } from "@/components/ui/use-toast"
+import { useQueryClient } from "@tanstack/react-query"
 
-const supabase = createClientComponentClient();
-
-const formSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
-interface AddFunFactDialogProps {
-  onSuccess?: (newFact: {
-    id: string;
-    title: string;
-    description: string | null;
-    created_at: string;
-  }) => void;
-}
-
-export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast();
-  
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-    },
-  });
-
+export function AddFunFactDialog() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const supabase = createClientComponentClient()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
 
-  const onSubmit = async (values: FormData) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const title = formData.get('title') as string
+    const description = formData.get('description') as string
+
     try {
       setIsSubmitting(true)
-      
-      const { data, error } = await supabase
-        .from("fun_facts")
+
+      const { error } = await supabase
+        .from('fun_facts')
         .insert({
-          title: values.title,
-          description: values.description || null,
+          title,
+          description
         })
-        .select()
-        .single()
 
       if (error) throw error
 
       toast({
-        title: "Success!",
-        description: "Fun fact added successfully.",
+        title: "Success",
+        description: "Fun fact has been added successfully",
       })
 
-      if (data && onSuccess) {
-        onSuccess(data)
-      }
+      // Invalidate and refetch fun facts data
+      queryClient.invalidateQueries({ queryKey: ['funfacts'] })
 
       form.reset()
       setIsOpen(false)
+
     } catch (error) {
-      console.error('Error adding fun fact:', error)
+      console.error('Error:', error)
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
     }
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Sparkles className="h-4 w-4" />
-          Add Fun Fact
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            size="sm" 
+            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:opacity-90 text-white gap-2 rounded-full px-4 shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+            Add Fun Fact
+          </Button>
+        </motion.div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] glass border-accent/20">
         <DialogHeader>
-          <DialogTitle>Add Fun Fact</DialogTitle>
-          <DialogDescription>
-            Share an interesting fact about Astrella
+          <DialogTitle className="gradient-text flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            Add Fun Fact
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Add an interesting fact about Astrella
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Title</Label>
+            <Input 
               name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter fun fact title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              placeholder="Enter title..." 
+              className="glass border-accent/20"
+              required
             />
-
-            <FormField
-              control={form.control}
+          </div>
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Description (Optional)</Label>
+            <Textarea 
               name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add more details about this fun fact... (optional)"
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              placeholder="Add more details..." 
+              className="glass border-accent/20 min-h-[100px]"
             />
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Submit'
-              )}
-            </Button>
-          </form>
-        </Form>
+          </div>
+          <Button 
+            type="submit" 
+            className="w-full bg-pink-500 hover:bg-pink-500/90 text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="h-4 w-4" />
+                </motion.div>
+                Creating...
+              </div>
+            ) : (
+              'Create'
+            )}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   );

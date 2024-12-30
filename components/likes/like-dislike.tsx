@@ -1,76 +1,155 @@
 "use client"
 
 import { useState } from "react"
-import { ThumbsUp, ThumbsDown } from "lucide-react"
-import { supabase } from "@/lib/supabase-client"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { useRouter } from 'next/router'
+import { ThumbsUp, ThumbsDown } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 
-type LikeDislikeProps = {
-  itemName: string
-  description?: string
+interface LikeDislikeProps {
+  itemId: string
+  initialLikes: number
+  initialDislikes: number
+  userVote?: 'like' | 'dislike' | null
 }
 
-export function LikeDislike({ itemName, description }: LikeDislikeProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { toast } = useToast()
+export function LikeDislike({ itemId, initialLikes, initialDislikes, userVote }: LikeDislikeProps) {
+  const [likes, setLikes] = useState(initialLikes)
+  const [dislikes, setDislikes] = useState(initialDislikes)
+  const [currentVote, setCurrentVote] = useState<'like' | 'dislike' | null>(userVote || null)
+  const [isLoading, setIsLoading] = useState(false)
+
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
-  const handleInteraction = async (isLike: boolean) => {
+  async function handleVote(voteType: 'like' | 'dislike') {
     try {
-      setIsSubmitting(true)
+      setIsLoading(true)
 
-      // Insert new like/dislike
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to vote",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Remove previous vote if exists
+      if (currentVote) {
+        if (currentVote === 'like') setLikes(prev => prev - 1)
+        if (currentVote === 'dislike') setDislikes(prev => prev - 1)
+      }
+
+      // Add new vote
+      if (voteType === currentVote) {
+        // User is un-voting
+        setCurrentVote(null)
+      } else {
+        // User is voting or changing vote
+        setCurrentVote(voteType)
+        if (voteType === 'like') setLikes(prev => prev + 1)
+        if (voteType === 'dislike') setDislikes(prev => prev + 1)
+      }
+
+      // Update in database
       const { error } = await supabase
-        .from('likes')
-        .insert([
-          {
-            item_name: itemName,
-            description: description || null,
-            is_like: isLike,
-          }
-        ])
+        .from('votes')
+        .upsert({
+          item_id: itemId,
+          user_id: session.user.id,
+          vote_type: voteType === currentVote ? null : voteType
+        })
 
       if (error) throw error
 
-      toast({
-        title: "Success!",
-        description: `${isLike ? 'Like' : 'Dislike'} recorded successfully.`,
-      })
-
-      // Use replace instead of push to avoid adding to history
-      router.replace('/')
+      router.refresh()
 
     } catch (error) {
-      console.error('Error:', error)
       toast({
         title: "Error",
-        description: "Failed to record your response.",
+        description: "Failed to register vote. Please try again.",
         variant: "destructive",
       })
+      console.error('Error:', error)
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleInteraction(true)}
-        disabled={isSubmitting}
+        variant="ghost"
+        size="sm"
+        className={cn(
+          "relative px-4 py-2 transition-all duration-300",
+          "hover:bg-primary/10 hover:text-primary",
+          "active:scale-95",
+          currentVote === 'like' && "text-primary bg-primary/10 font-medium",
+          !currentVote && "text-muted-foreground"
+        )}
+        onClick={() => handleVote('like')}
+        disabled={isLoading}
       >
-        <ThumbsUp className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <ThumbsUp className={cn(
+            "h-4 w-4 transition-transform",
+            currentVote === 'like' && "scale-110"
+          )} />
+          <span className={cn(
+            "min-w-[1.5rem] text-sm",
+            currentVote === 'like' && "text-glow"
+          )}>
+            {likes}
+          </span>
+        </div>
+        {currentVote === 'like' && (
+          <motion.div
+            className="absolute inset-0 rounded-[var(--radius)] border border-primary/50"
+            layoutId="voteBorder"
+            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          />
+        )}
       </Button>
+
       <Button
-        variant="outline"
-        size="icon"
-        onClick={() => handleInteraction(false)}
-        disabled={isSubmitting}
+        variant="ghost"
+        size="sm"
+        className={cn(
+          "relative px-4 py-2 transition-all duration-300",
+          "hover:bg-destructive/10 hover:text-destructive",
+          "active:scale-95",
+          currentVote === 'dislike' && "text-destructive bg-destructive/10 font-medium",
+          !currentVote && "text-muted-foreground"
+        )}
+        onClick={() => handleVote('dislike')}
+        disabled={isLoading}
       >
-        <ThumbsDown className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <ThumbsDown className={cn(
+            "h-4 w-4 transition-transform",
+            currentVote === 'dislike' && "scale-110"
+          )} />
+          <span className={cn(
+            "min-w-[1.5rem] text-sm",
+            currentVote === 'dislike' && "text-glow"
+          )}>
+            {dislikes}
+          </span>
+        </div>
+        {currentVote === 'dislike' && (
+          <motion.div
+            className="absolute inset-0 rounded-[var(--radius)] border border-destructive/50"
+            layoutId="voteBorder"
+            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          />
+        )}
       </Button>
     </div>
   )

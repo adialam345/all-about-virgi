@@ -99,10 +99,9 @@ export function DislikesList() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ThumbsDown className="h-5 w-5 text-red-500" />
+        <div className="flex items-center gap-1">
+          <ThumbsDown className="h-10 w-10 text-red-500" />
           <div>
-            <CardTitle>Dislikes</CardTitle>
             <CardDescription>Things that Astrella doesn't like</CardDescription>
           </div>
         </div>

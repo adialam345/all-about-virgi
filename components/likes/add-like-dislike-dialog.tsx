@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { motion } from "framer-motion"
+import { Plus, Heart, ThumbsDown, Loader2, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,57 +12,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Heart, Tag } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useToast } from "@/components/ui/use-toast"
 
 interface Tag {
   id: string
   name: string
 }
 
-const formSchema = z.object({
-  itemName: z.string().min(2, {
-    message: "Item name must be at least 2 characters.",
-  }),
-  description: z.string().optional(),
-  type: z.enum(["like", "dislike"], {
-    required_error: "Please select whether this is a like or dislike.",
-  }),
-  selectedTags: z.array(z.string()).optional(),
-})
+interface AddLikeDislikeDialogProps {
+  variant?: 'like' | 'dislike'
+}
 
-export function AddLikeDislikeDialog() {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
+export function AddLikeDislikeDialog({ variant = 'like' }: AddLikeDislikeDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [isOpen, setIsOpen] = useState(false)
   const { toast } = useToast()
   const supabase = createClientComponentClient()
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      itemName: "",
-      description: "",
-      type: "like",
-      selectedTags: [],
-    },
-  })
+  const Icon = variant === 'like' ? Heart : ThumbsDown
+  const title = variant === 'like' ? 'Add Like' : 'Add Dislike'
 
   useEffect(() => {
     async function fetchTags() {
@@ -81,8 +54,10 @@ export function AddLikeDislikeDialog() {
       }
     }
 
-    fetchTags()
-  }, [])
+    if (isOpen) {
+      fetchTags()
+    }
+  }, [isOpen])
 
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev => 
@@ -92,16 +67,22 @@ export function AddLikeDislikeDialog() {
     )
   }
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const title = formData.get('title') as string
+    const description = formData.get('description') as string
+
     try {
       setIsSubmitting(true)
 
       const { data: likeData, error: likeError } = await supabase
         .from('likes')
         .insert({
-          item_name: values.itemName,
-          description: values.description,
-          is_like: values.type === 'like',
+          item_name: title,
+          description: description,
+          is_like: variant === 'like',
         })
         .select()
         .single()
@@ -109,7 +90,7 @@ export function AddLikeDislikeDialog() {
       if (likeError) throw likeError
 
       // If there are selected tags, insert them into item_tags
-      if (selectedTags.length > 0) {
+      if (selectedTags.length > 0 && likeData) {
         const itemTagsToInsert = selectedTags.map(tagId => ({
           like_id: likeData.id,
           tag_id: tagId,
@@ -124,15 +105,12 @@ export function AddLikeDislikeDialog() {
 
       toast({
         title: "Success",
-        description: `Your ${values.type} has been added successfully`,
+        description: `Your ${variant} has been added successfully`,
       })
 
       form.reset()
       setSelectedTags([])
-      setOpen(false)
-      
-      // Simply refresh the page without URL parameters
-      router.refresh()
+      setIsOpen(false)
 
     } catch (error) {
       console.error('Error:', error)
@@ -147,101 +125,84 @@ export function AddLikeDislikeDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="lg">
-          <Heart className="mr-2 h-4 w-4" />
-          Add Like/Dislike
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            size="sm" 
+            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:opacity-90 text-white gap-2 rounded-full px-4 shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+            {title}
+          </Button>
+        </motion.div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] glass border-accent/20">
         <DialogHeader>
-          <DialogTitle>Add Like/Dislike</DialogTitle>
-          <DialogDescription>
-            Add something you like or dislike. Click submit when you&apos;re done.
+          <DialogTitle className="gradient-text flex items-center gap-2">
+            <Icon className="h-5 w-5" />
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            {variant === 'like' ? 'Add something Astrella likes' : 'Add something Astrella dislikes'}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Type</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-row space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="like" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Like</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="dislike" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Dislike</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Title</Label>
+            <Input 
+              name="title"
+              placeholder="Enter title..." 
+              className="glass border-accent/20"
+              required
             />
-            <FormField
-              control={form.control}
-              name="itemName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter name..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
+          </div>
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Description (Optional)</Label>
+            <Textarea 
               name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Add description..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              placeholder="Add more details..." 
+              className="glass border-accent/20 min-h-[100px]"
             />
-            <div className="space-y-4">
-              <FormLabel>Tags (Optional)</FormLabel>
-              <ScrollArea className="h-[120px] w-full rounded-md border p-4">
-                <div className="space-y-2">
-                  {availableTags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant={selectedTags.includes(tag.id) ? "default" : "outline"}
-                      className="mr-2 cursor-pointer"
-                      onClick={() => toggleTag(tag.id)}
-                    >
-                      <Tag className="mr-1 h-3 w-3" />
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit"}
-            </Button>
-          </form>
-        </Form>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Tags (Optional)</Label>
+            <ScrollArea className="h-[120px] w-full rounded-md border p-4">
+              <div className="space-y-2">
+                {availableTags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                    className="mr-2 cursor-pointer"
+                    onClick={() => toggleTag(tag.id)}
+                  >
+                    <Tag className="mr-1 h-3 w-3" />
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <Button 
+            type="submit" 
+            className="w-full bg-pink-500 hover:bg-pink-500/90 text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="h-4 w-4" />
+                </motion.div>
+                Creating...
+              </div>
+            ) : (
+              'Create'
+            )}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   )
