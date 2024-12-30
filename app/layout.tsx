@@ -4,10 +4,10 @@ import { Inter } from 'next/font/google'
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from '@/components/navbar'
 import { Toaster } from "@/components/ui/toaster"
-import { ToastProvider } from "@/components/ui/toast"
 import { headers, cookies } from 'next/headers'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import Providers from "./providers"
+
+import { cn } from "@/lib/utils"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,19 +25,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={true}
-            disableTransitionOnChange
-          >
-            <Navbar />
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </Providers>
+      <body className={cn(
+        "min-h-screen font-sans antialiased",
+        "background-gradient",
+      )}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Navbar />
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -17,7 +17,6 @@ import { FunFactsList } from "@/components/funfacts/fun-facts-list"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { useQueryClient } from '@tanstack/react-query'
 
 interface AnimatedElementProps {
   children: React.ReactNode;
@@ -62,14 +61,14 @@ const RotatingElement = ({ children, delay = 0 }: AnimatedElementProps) => {
 }
 
 export default function Home() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('about')
-  const queryClient = useQueryClient()
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
-    queryClient.invalidateQueries({ queryKey: ['likes'] })
-    queryClient.invalidateQueries({ queryKey: ['dislikes'] })
-    queryClient.invalidateQueries({ queryKey: ['tags'] })
+    const searchParams = new URLSearchParams(window.location.search)
+    searchParams.set('tab', value)
+    router.push(`${window.location.pathname}?${searchParams.toString()}`)
   }
 
   return (
