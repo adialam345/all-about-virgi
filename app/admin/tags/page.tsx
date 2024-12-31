@@ -51,11 +51,7 @@ type TagType = {
   name: string
   description: string | null
   created_at: string
-  created_by: string | null
   item_count: number
-  profiles?: {
-    email: string
-  } | null
 }
 
 export default function ManageTags() {
@@ -121,26 +117,28 @@ export default function ManageTags() {
 
   useEffect(() => {
     fetchTags()
-
-    const channel = supabase
-      .channel('tags-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'tags' }, 
-        () => fetchTags()
-      )
-      .subscribe()
-
-    return () => {
-      channel.unsubscribe()
-    }
   }, [])
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true)
-      
+
+      // First verify admin status
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) throw profileError
+      if (profile?.role !== 'admin') {
+        throw new Error('Unauthorized: Admin privileges required')
+      }
+
       if (editingTag) {
-        // Update existing tag
         const { error } = await supabase
           .from('tags')
           .update({
@@ -155,15 +153,13 @@ export default function ManageTags() {
           title: "Success",
           description: "Tag updated successfully",
         })
-        setEditingTag(null)
       } else {
-        // Create new tag
         const { error } = await supabase
           .from('tags')
-          .insert([{
+          .insert({
             name: values.name,
             description: values.description || null,
-          }])
+          })
 
         if (error) throw error
 
@@ -171,16 +167,19 @@ export default function ManageTags() {
           title: "Success",
           description: "Tag created successfully",
         })
-        setIsAddDialogOpen(false)
       }
 
       form.reset()
+      setEditingTag(null)
+      setIsAddDialogOpen(false)
       await fetchTags()
     } catch (error) {
       console.error('Error saving tag:', error)
       toast({
         title: "Error",
-        description: "Failed to save tag",
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to save tag. Please ensure you have admin privileges.",
         variant: "destructive",
       })
     } finally {
@@ -246,125 +245,166 @@ export default function ManageTags() {
   }
 
   if (isLoading) {
-    return (
-      <div className="p-8">
-        <div className="flex items-center gap-2">
-          <Tag className="h-4 w-4 animate-spin" />
-          Loading tags...
-        </div>
-      </div>
-    )
+    return <div>Loading...</div>
   }
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Manage Tags</h2>
-        
-        <Dialog 
-          open={isAddDialogOpen} 
-          onOpenChange={(open) => {
-            setIsAddDialogOpen(open)
-            if (!open) form.reset()
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button 
-              className="gap-2"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Add New Tag
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Tag</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new tag.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter tag name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Enter tag description"
-                          {...field}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Tag
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    <div className="flex flex-col h-full -mx-6">
+      <div className="py-4 bg-background px-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Manage Tags</h1>
+            <p className="text-muted-foreground">
+              View, edit, and delete tags
+            </p>
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Tag
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Tag</DialogTitle>
+                <DialogDescription>
+                  Add a new tag to categorize content
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter tag name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Add tag description..."
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Submit
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Tags ({tags.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tags.map((tag) => (
-                <TableRow key={tag.id}>
-                  <TableCell className="font-medium">{tag.name}</TableCell>
-                  <TableCell>{tag.description || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {tag.item_count} items
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(tag.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleEdit(tag)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Dialog open={isDeleteDialogOpen && tagToDelete?.id === tag.id}>
-                        <DialogTrigger asChild>
+      <div className="flex-1">
+        <div className="py-3 border-b bg-card px-6">
+          <h2 className="text-lg font-semibold">All Tags ({tags.length})</h2>
+        </div>
+
+        <div className="md:hidden">
+          {tags.map((tag) => (
+            <div key={tag.id} className="border-b bg-card">
+              <div className="py-3 px-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium">{tag.name}</div>
+                    <div className="text-sm text-muted-foreground">{tag.description || "—"}</div>
+                    <div className="flex justify-between items-center text-sm mt-2">
+                      <Badge variant="secondary">
+                        {tag.item_count} items
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        {new Date(tag.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleEdit(tag)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        setTagToDelete(tag)
+                        setIsDeleteDialogOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {tags.length === 0 && (
+            <div className="text-center text-muted-foreground py-4">
+              No tags found
+            </div>
+          )}
+        </div>
+
+        <div className="hidden md:block px-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Tags ({tags.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tags.map((tag) => (
+                    <TableRow key={tag.id}>
+                      <TableCell className="font-medium">{tag.name}</TableCell>
+                      <TableCell>{tag.description || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {tag.item_count} items
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(tag.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEdit(tag)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
@@ -375,49 +415,107 @@ export default function ManageTags() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete Tag</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete the tag "{tag.name}"? 
-                              This action cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setIsDeleteDialogOpen(false)
-                                setTagToDelete(null)
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => handleDelete(tag)}
-                            >
-                              Delete
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {tags.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No tags found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={isDeleteDialogOpen && tagToDelete !== null}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Tag</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the tag "{tagToDelete?.name}"? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setTagToDelete(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => tagToDelete && handleDelete(tagToDelete)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={!!editingTag}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingTag(null)
+            form.reset()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Tag</DialogTitle>
+            <DialogDescription>
+              Make changes to the tag below.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter tag name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Add tag description..."
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 const sidebarNavItems = [
   {
@@ -49,9 +50,6 @@ async function checkAdminAccess() {
   }
 }
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-
 export default async function AdminLayout({
   children,
 }: {
@@ -60,42 +58,52 @@ export default async function AdminLayout({
   await checkAdminAccess()
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <div className="hidden border-r bg-muted/40 md:block md:w-64">
-        <div className="flex h-full flex-col">
-          <div className="flex h-14 items-center border-b px-4 font-semibold">
-            Admin Dashboard
+    <div className="flex flex-col min-h-screen">
+      {/* Mobile Navigation */}
+      <div className="md:hidden border-b bg-background">
+        <ScrollArea className="max-w-[600px] lg:max-w-none">
+          <div className="flex items-center px-4">
+            {sidebarNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2 px-4 py-4 text-sm font-medium transition-colors hover:text-primary"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.title}
+              </Link>
+            ))}
           </div>
-          <div className="flex-1 overflow-auto py-2">
-            <nav className="grid items-start px-2 text-sm font-medium">
-              {sidebarNavItems.map((item, index) => {
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={index}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
-                      "hover:bg-muted"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.title}
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        <div className="container py-6">
+      <div className="flex-1 flex">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex w-64 flex-col border-r bg-muted/40">
+          <div className="px-6 py-4">
+            <h2 className="text-lg font-semibold">Admin Panel</h2>
+          </div>
+          <nav className="space-y-1 px-2">
+            {sidebarNavItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted">
+                  <item.icon className="h-4 w-4" />
+                  {item.title}
+                </div>
+              </Link>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )
 }
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'

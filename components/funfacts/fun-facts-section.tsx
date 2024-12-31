@@ -3,8 +3,9 @@
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { AddFunFactDialog } from './add-funfact-dialog';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect } from 'react';
 
 interface FunFact {
   id: number;
@@ -15,6 +16,7 @@ interface FunFact {
 
 export function FunFactsSection() {
   const supabase = createClientComponentClient();
+  const queryClient = useQueryClient();
 
   const { data: funFacts, isLoading } = useQuery({
     queryKey: ['funfacts'],
@@ -29,11 +31,32 @@ export function FunFactsSection() {
     },
   });
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('fun_facts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fun_facts',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['funfacts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, supabase]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold tracking-tight">Fun Facts</h2>
-        <AddFunFactDialog />
+        <AddFunFactDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['funfacts'] })} />
       </div>
       <div className="grid gap-4">
         {isLoading ? (

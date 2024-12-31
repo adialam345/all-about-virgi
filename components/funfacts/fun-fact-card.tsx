@@ -13,18 +13,19 @@ interface FunFactCardProps {
 
 // Helper function to separate text and emojis
 function separateTextAndEmojis(input: string) {
-  // Regex to match emoji characters
-  const emojiRegex = /[\p{Emoji}\u200d]+/gu;
+  // Simple emoji regex that works with older JS versions
+  const emojiRegex = /[\uD800-\uDBFF][\uDC00-\uDFFF]|\u200D|\uFE0F|[\u2600-\u27FF]/g;
   const parts = [];
   let lastIndex = 0;
+  let match;
 
-  for (const match of input.matchAll(emojiRegex)) {
+  while ((match = emojiRegex.exec(input)) !== null) {
     const textBefore = input.slice(lastIndex, match.index);
     if (textBefore) {
       parts.push({ type: 'text', content: textBefore });
     }
     parts.push({ type: 'emoji', content: match[0] });
-    lastIndex = match.index! + match[0].length;
+    lastIndex = emojiRegex.lastIndex;
   }
 
   const remainingText = input.slice(lastIndex);
