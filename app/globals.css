@@ -48,33 +48,31 @@
     --ring: 330 85% 60%;
   }
 
-  * {
-    @apply border-border;
-    -webkit-tap-highlight-color: transparent;
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground overflow-x-hidden;
-    touch-action: manipulation;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 
-  /* Add smooth scrolling to the entire page */
-  html {
-    scroll-behavior: smooth;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  input, textarea, p, h1, h2, h3, h4, h5, h6, span {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   }
 
-  /* Base transition for all interactive elements */
   a, button, input, select, textarea {
     @apply transition-all duration-200;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Optimize touch interactions */
-  @media (hover: none) {
-    a:hover, button:hover {
-      @apply transition-none;
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+    
+    body {
+      @apply touch-pan-y;
     }
   }
 }
@@ -88,7 +86,7 @@
 .page-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
 }
 
 .page-exit {
@@ -99,19 +97,17 @@
 .page-exit-active {
   opacity: 0;
   transform: translateY(-8px);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
 }
 
 /* Smooth tab transitions */
 [role="tabpanel"] {
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity, transform;
+  transition: all 200ms ease-in-out;
 }
 
 [role="tabpanel"][data-state="inactive"] {
   opacity: 0;
   transform: translateY(4px);
-  pointer-events: none;
 }
 
 [role="tabpanel"][data-state="active"] {
@@ -122,8 +118,6 @@
 /* Navigation link animations */
 .nav-link {
   position: relative;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .nav-link::after {
@@ -134,8 +128,7 @@
   bottom: -2px;
   left: 0;
   background-color: hsl(var(--primary));
-  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: width;
+  transition: width 200ms ease-in-out;
 }
 
 .nav-link:hover::after,
@@ -146,7 +139,6 @@
 @layer utilities {
   .glass {
     @apply bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl border border-white/20 shadow-lg rounded-[var(--radius)];
-    transform: translateZ(0);
   }
 
   .dark .glass {
@@ -155,13 +147,11 @@
 
   .glow-effect {
     @apply relative overflow-hidden rounded-[var(--radius)] bg-gradient-to-r from-primary/20 to-secondary/20;
-    transform: translateZ(0);
   }
 
   .glow-effect::before {
     content: '';
     @apply absolute inset-0 bg-gradient-to-r from-primary/40 to-secondary/40 opacity-0 transition-all duration-300 blur-xl;
-    will-change: opacity, transform;
   }
 
   .glow-effect:hover::before {
@@ -172,31 +162,26 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary font-bold;
     background-size: 200% auto;
     animation: gradient 3s linear infinite;
-    will-change: background-position;
   }
 
   .animate-gradient {
     animation: gradient 3s linear infinite;
     background-size: 200% auto;
-    will-change: background-position;
   }
 
   .animate-gradient-slow {
     animation: gradient 6s linear infinite;
     background-size: 200% auto;
-    will-change: background-position;
   }
 
   .card-hover {
     @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-gradient-to-br from-primary/10 to-secondary/10 backdrop-blur-sm border border-border/50;
     will-change: transform;
-    transform: translateZ(0);
   }
 
-  /* Mobile optimizations */
   @media (max-width: 768px) {
     .card-hover {
-      @apply hover:scale-100 active:scale-[0.98] transition-transform;
+      @apply hover:scale-100 active:scale-95 transition-transform;
     }
     
     .glow-effect::before {
@@ -204,59 +189,44 @@
     }
     
     .floating {
-      animation: none;
+      animation: none !important;
     }
     
     .sparkle {
-      animation: none;
+      animation: none !important;
     }
     
     .glass {
       backdrop-filter: none;
-      @apply bg-background/80;
+      @apply bg-background/95 border-border/30;
     }
 
-    /* Optimize scrolling */
-    * {
-      -webkit-overflow-scrolling: touch;
+    .gradient-text {
+      animation: none;
     }
 
-    /* Better touch feedback */
-    a:active, button:active {
-      @apply opacity-70 transition-opacity duration-100;
+    .animate-gradient,
+    .animate-gradient-slow {
+      animation: none;
+    }
+
+    [role="tabpanel"][data-state="inactive"] {
+      display: none;
+    }
+
+    .nav-link::after {
+      display: none;
     }
   }
 
   .floating {
     animation: floating 4s ease-in-out infinite;
     will-change: transform;
-    transform: translateZ(0);
   }
 
   .sparkle {
     animation: sparkle 2s ease-in-out infinite;
     will-change: transform;
-    transform: translateZ(0);
-  }
-
-  /* Smooth scrollbar */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary)/0.2) transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary)/0.2);
-    border-radius: 20px;
   }
 
   @keyframes gradient {

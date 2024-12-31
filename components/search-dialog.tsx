@@ -188,54 +188,54 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="glass sm:max-w-[425px] border-none shadow-2xl bg-gradient-to-br from-background/80 via-background/50 to-background/80">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl shadow-lg">
-              <Search className="h-5 w-5 text-primary" />
+      <DialogContent className="glass sm:max-w-[300px] border-none shadow-2xl bg-gradient-to-br from-background/80 via-background/50 to-background/80 fixed top-[10%] translate-y-0 p-3">
+        <DialogHeader className="space-y-0 pb-1">
+          <DialogTitle className="text-base font-bold flex items-center gap-1">
+            <div className="p-0.5 rounded-md bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl shadow-lg">
+              <Search className="h-3 w-3 text-primary" />
             </div>
             <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent animate-gradient">
               Search
             </span>
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground/90 font-medium">
+          <DialogDescription className="text-xs text-muted-foreground/90 font-medium">
             Search for likes, dislikes, tags, and fun facts
           </DialogDescription>
         </DialogHeader>
         
-        <Command className="rounded-xl border-none bg-background/30 backdrop-blur-xl shadow-xl">
+        <Command className="rounded-md border-none bg-background/30 backdrop-blur-xl shadow-xl">
           <CommandInput
             placeholder="Type to search..."
             value={searchTerm}
             onValueChange={setSearchTerm}
-            className="border-none focus:ring-0 h-11 text-base font-medium bg-transparent"
+            className="border-none focus:ring-0 h-7 text-xs font-medium bg-transparent"
           />
-          <CommandEmpty className="py-8 text-center text-muted-foreground">
+          <CommandEmpty className="py-3 text-center text-muted-foreground">
             {isLoading ? (
-              <div className="flex items-center justify-center gap-3 text-base">
+              <div className="flex items-center justify-center gap-1.5 text-xs">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="text-primary"
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="h-3 w-3" />
                 </motion.div>
                 Searching...
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-base">
+              <div className="flex flex-col items-center gap-1 text-xs">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="text-muted-foreground/70"
                 >
-                  <Search className="h-12 w-12" />
+                  <Search className="h-6 w-6" />
                 </motion.div>
                 No results found.
               </div>
             )}
           </CommandEmpty>
-          <CommandGroup className="max-h-[400px] overflow-y-auto px-2 pb-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+          <CommandGroup className="max-h-[200px] overflow-y-auto px-1 pb-1 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
             <AnimatePresence>
               {results.map((result, index) => (
                 <motion.div
@@ -248,32 +248,32 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
                   <CommandItem
                     value={`${result.type}-${result.id}-${result.title}`}
                     onSelect={() => handleSelect(result)}
-                    className="flex flex-col items-start gap-2 p-4 rounded-lg hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 transition-all duration-300 group"
+                    className="flex flex-col items-start gap-1 p-1.5 rounded-md hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 transition-all duration-300 group"
                   >
-                    <div className="flex w-full items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-background/80 to-background/40 shadow-lg group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300">
+                    <div className="flex w-full items-center gap-1.5">
+                      <div className="p-0.5 rounded-md bg-gradient-to-br from-background/80 to-background/40 shadow-lg group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300">
                         {getResultIcon(result.type)}
                       </div>
-                      <span className="flex-1 font-medium text-base">{result.title}</span>
+                      <span className="flex-1 font-medium text-xs">{result.title}</span>
                       <Badge 
                         variant="secondary" 
-                        className="ml-auto glass bg-gradient-to-br from-primary/10 to-secondary/10 group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300 text-xs font-medium px-3 py-1"
+                        className="ml-auto glass bg-gradient-to-br from-primary/10 to-secondary/10 group-hover:from-primary/20 group-hover:to-secondary/20 transition-all duration-300 text-[9px] font-medium px-1.5 py-0"
                       >
                         {result.type === 'fun_fact' ? 'Fun Fact' : result.type}
                       </Badge>
                     </div>
                     {result.description && (
-                      <p className="text-sm text-muted-foreground/80 line-clamp-2 pl-9 pr-4">
+                      <p className="text-[9px] text-muted-foreground/80 line-clamp-2 pl-5 pr-1">
                         {result.description}
                       </p>
                     )}
                     {result.tags && result.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pl-9">
+                      <div className="flex flex-wrap gap-1 pl-5">
                         {result.tags.map(tag => (
                           <Badge 
                             key={tag.id}
                             variant="outline" 
-                            className="bg-background/50 text-xs hover:bg-primary/10 transition-colors duration-300"
+                            className="bg-background/50 text-[8px] hover:bg-primary/10 transition-colors duration-300 px-1 py-0"
                           >
                             {tag.name}
                           </Badge>
@@ -281,12 +281,12 @@ export function SearchDialog({ open, setOpen }: SearchDialogProps) {
                       </div>
                     )}
                     {result.relatedItems && result.relatedItems.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pl-9">
+                      <div className="flex flex-wrap gap-1 pl-5">
                         {result.relatedItems.map(item => (
                           <Badge 
                             key={item.id}
                             variant="outline" 
-                            className="bg-background/50 text-xs hover:bg-primary/10 transition-colors duration-300"
+                            className="bg-background/50 text-[8px] hover:bg-primary/10 transition-colors duration-300 px-1 py-0"
                           >
                             {item.title}
                           </Badge>

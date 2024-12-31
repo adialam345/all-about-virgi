@@ -63,12 +63,12 @@ export function FunFactsSection() {
   }, [supabase, debouncedInvalidate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold tracking-tight">Fun Facts</h2>
+        <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Fun Facts</h2>
         <AddFunFactDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ['funfacts'] })} />
       </div>
-      <div className="grid gap-4">
+      <div className="grid gap-3 md:gap-4">
         {isLoading ? (
           <div className="text-muted-foreground">Loading fun facts...</div>
         ) : funFacts && funFacts.length > 0 ? (
@@ -77,16 +77,17 @@ export function FunFactsSection() {
               key={fact.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="group relative rounded-lg border border-accent/20 bg-card p-6 glass"
+              transition={{ duration: 0.3 }}
+              className="group relative rounded-lg border border-accent/20 bg-card p-4 md:p-6 glass"
             >
               <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <h3 className="font-medium leading-none flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-pink-500" />
+                <div className="space-y-1.5 md:space-y-2">
+                  <h3 className="font-medium leading-none flex items-center gap-1.5 md:gap-2">
+                    <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-pink-500" />
                     {fact.title}
                   </h3>
                   {fact.description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       {fact.description}
                     </p>
                   )}

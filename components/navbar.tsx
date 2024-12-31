@@ -46,8 +46,8 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="container flex h-16 max-w-screen-2xl items-center">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <nav className="container flex h-14 md:h-16 max-w-screen-2xl items-center">
         <div className="flex flex-1 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <motion.div
@@ -59,29 +59,32 @@ export function Navbar() {
                 rotate: { duration: 20, repeat: Infinity, ease: "linear" },
                 scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
               }}
+              className="hidden md:block"
             >
               <Star className="h-6 w-6 text-primary" />
             </motion.div>
-            <span className="font-bold text-xl gradient-text">About Virgi</span>
+            <Star className="h-5 w-5 md:hidden text-primary" />
+            <span className="font-bold text-lg md:text-xl gradient-text">About Virgi</span>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="mr-2"
+              className="h-9 w-9 md:h-10 md:w-10"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
-              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <Sun className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
             <Button
               variant="ghost"
               size="icon"
+              className="h-9 w-9 md:h-10 md:w-10"
               onClick={() => setIsSearchOpen(true)}
             >
-              <Search className="h-[1.2rem] w-[1.2rem]" />
+              <Search className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem]" />
               <span className="sr-only">Search</span>
             </Button>
             
@@ -91,11 +94,12 @@ export function Navbar() {
                   variant="default" 
                   size={isSmallDevice ? "icon" : "default"}
                   className={cn(
-                    isSmallDevice ? "h-10 w-10 p-0" : "h-10 px-4 py-2"
+                    "h-9 md:h-10",
+                    isSmallDevice ? "w-9 md:w-10 p-0" : "px-3 md:px-4 py-2"
                   )}
                 >
                   <span className="hidden md:inline">Menu</span>
-                  <Menu className="h-4 w-4 md:ml-2" />
+                  <Menu className="h-[1.1rem] w-[1.1rem] md:h-4 md:w-4 md:ml-2" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>

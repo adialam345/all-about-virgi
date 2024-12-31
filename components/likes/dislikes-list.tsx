@@ -115,13 +115,6 @@ export function DislikesList() {
     }
   }, [highlightId, dislikes])
 
-  // Handle sort change without triggering tab swipe
-  const handleSortChange = (e: Event) => {
-    e.stopPropagation()
-    const target = e.target as HTMLSelectElement
-    setSortOrder(target.value as 'desc' | 'asc')
-  }
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -131,20 +124,18 @@ export function DislikesList() {
             <CardDescription>Things that Astrella doesn't like</CardDescription>
           </div>
         </div>
-        <div onClick={e => e.stopPropagation()} className="touch-none">
-          <Select
-            value={sortOrder}
-            onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="desc">Newest First</SelectItem>
-              <SelectItem value="asc">Oldest First</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={sortOrder}
+          onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Newest First</SelectItem>
+            <SelectItem value="asc">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
         {loading ? (
