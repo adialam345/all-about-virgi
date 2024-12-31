@@ -292,4 +292,18 @@
   .font-emoji {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', system-ui, -apple-system, sans-serif !important;
   }
+
+  .reduced-motion {
+    --duration: 0s !important;
+    --transition-duration: 0s !important;
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .reduced-motion * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
 }

@@ -1,25 +1,14 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { Navbar } from '@/components/navbar'
-import { Toaster } from "@/components/ui/toaster"
 import { Providers } from './providers'
+import { ClientLayout } from './client-layout'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Virgi',
   description: 'Suka berekspresi melalui kreasi, Tara! Aku Virgi',
-}
-
-function ClientLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <Providers>
-      <Navbar />
-      {children}
-      <Toaster />
-    </Providers>
-  )
 }
 
 export default function RootLayout({
@@ -30,9 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <Providers>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </Providers>
       </body>
     </html>
   )

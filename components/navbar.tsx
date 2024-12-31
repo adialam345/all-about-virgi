@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Heart, Menu, Search, Star, Tag, Moon, Sun } from "lucide-react"
+import { Heart, Menu, Search, Star, Tag, Moon, Sun, Zap, ZapOff } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { SearchDialog } from "@/components/search-dialog"
 import { useTheme } from "next-themes"
+import { useMotion } from "@/app/providers"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const { isReducedMotion, toggleReducedMotion } = useMotion()
   const [isSmallDevice, setIsSmallDevice] = useState(false)
 
   useEffect(() => {
@@ -55,9 +57,9 @@ export function Navbar() {
         transform: 'translate3d(0,0,0)',
       }}
     >
-      <nav className="container flex h-14 md:h-16 max-w-screen-2xl items-center">
+      <nav className="px-4 md:px-6 flex h-14 md:h-16 max-w-screen-2xl items-center">
         <div className="flex flex-1 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 -ml-1">
             <motion.div
               animate={{ 
                 rotate: isSmallDevice ? 0 : 360,
@@ -81,30 +83,41 @@ export function Navbar() {
             <span className="font-bold text-lg md:text-xl gradient-text">About Virgi</span>
           </Link>
 
-          <div className="flex items-center gap-1.5 md:gap-2">
-            <motion.div whileTap={{ scale: 0.95 }} transition={{ duration: 0.1 }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 md:h-10 md:w-10"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              >
-                <Sun className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </motion.div>
-            <motion.div whileTap={{ scale: 0.95 }} transition={{ duration: 0.1 }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 md:h-10 md:w-10"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem]" />
-                <span className="sr-only">Search</span>
-              </Button>
-            </motion.div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleReducedMotion}
+              className="h-9 w-9"
+            >
+              {isReducedMotion ? (
+                <ZapOff className="h-4 w-4" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {isReducedMotion ? "Enable animations" : "Disable animations"}
+              </span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="h-9 w-9"
+            >
+              <Sun className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSearchOpen(true)}
+              className="h-9 w-9"
+            >
+              <Search className="h-[1.1rem] w-[1.1rem] md:h-[1.2rem] md:w-[1.2rem]" />
+              <span className="sr-only">Search</span>
+            </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
