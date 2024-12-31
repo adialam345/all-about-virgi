@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
@@ -10,12 +10,40 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { SearchDialog } from "@/components/search-dialog"
 import { useTheme } from "next-themes"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const [isSmallDevice, setIsSmallDevice] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const checkDevice = () => {
+      setIsSmallDevice(window.innerWidth <= 768)
+    }
+    checkDevice()
+    window.addEventListener('resize', checkDevice)
+    return () => window.removeEventListener('resize', checkDevice)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button variant="default" size="default">
+        <span className="hidden md:inline">Menu</span>
+        <Menu className="h-4 w-4 md:ml-2" />
+        <span className="sr-only">Open menu</span>
+      </Button>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,18 +65,6 @@ export function Navbar() {
             <span className="font-bold text-xl gradient-text">About Virgi</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-3">
-            <NavLink href="/likes" icon={Heart}>
-              Likes & Dislikes
-            </NavLink>
-            <NavLink href="/tags" icon={Tag}>
-              Tags
-            </NavLink>
-            <NavLink href="/funfacts" icon={Star}>
-              Fun Facts
-            </NavLink>
-          </nav>
-
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -68,39 +84,52 @@ export function Navbar() {
               <Search className="h-[1.2rem] w-[1.2rem]" />
               <span className="sr-only">Search</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <Menu className="h-[1.2rem] w-[1.2rem]" />
-              <span className="sr-only">Menu</span>
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="default" 
+                  size={isSmallDevice ? "icon" : "default"}
+                  className={cn(
+                    isSmallDevice ? "h-10 w-10 p-0" : "h-10 px-4 py-2"
+                  )}
+                >
+                  <span className="hidden md:inline">Menu</span>
+                  <Menu className="h-4 w-4 md:ml-2" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Menu</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link href="/" className="flex items-center">
+                    <Star className="mr-2 w-4" />
+                    Beranda
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/likes" className="flex items-center">
+                    <Heart className="mr-2 w-4" />
+                    Likes & Dislikes
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/tags" className="flex items-center">
+                    <Tag className="mr-2 w-4" />
+                    Tags
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/funfacts" className="flex items-center">
+                    <Star className="mr-2 w-4" />
+                    Fun Facts
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </nav>
-
-      {mobileMenuOpen && (
-        <motion.nav 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="md:hidden border-t glass"
-        >
-          <div className="container py-4 space-y-2">
-            <MobileNavLink href="/likes" icon={Heart}>
-              Likes & Dislikes
-            </MobileNavLink>
-            <MobileNavLink href="/tags" icon={Tag}>
-              Tags
-            </MobileNavLink>
-            <MobileNavLink href="/funfacts" icon={Star}>
-              Fun Facts
-            </MobileNavLink>
-          </div>
-        </motion.nav>
-      )}
       <SearchDialog open={isSearchOpen} setOpen={setIsSearchOpen} />
     </header>
   )
@@ -144,9 +173,9 @@ function MobileNavLink({ href, icon: Icon, children }: { href: string; icon: Luc
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg transition-colors text-base",
+        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-base",
         isActive 
-          ? "text-primary font-medium bg-gradient-to-r from-pink-400/20 via-pink-500/20 to-pink-400/20 shadow-lg" 
+          ? "text-primary font-medium bg-gradient-to-r from-pink-400/20 via-pink-500/20 to-pink-400/20 shadow-sm" 
           : "text-muted-foreground hover:text-primary hover:bg-primary/10"
       )}
     >
