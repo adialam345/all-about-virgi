@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -101,10 +101,10 @@ export function AddFunFactDialog() {
         <DialogHeader>
           <DialogTitle className="gradient-text flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Add Fun Fact
+            Add New Fun Fact
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Add an interesting fact about Astrella
+            Share an interesting fact about Astrella
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,10 +138,10 @@ export function AddFunFactDialog() {
                 >
                   <Loader2 className="h-4 w-4" />
                 </motion.div>
-                Creating...
+                Creating Fun Fact...
               </div>
             ) : (
-              'Create'
+              'Create Fun Fact'
             )}
           </Button>
         </form>

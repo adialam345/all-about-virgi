@@ -36,23 +36,6 @@ export function AddTagDialog() {
     try {
       setIsSubmitting(true)
 
-      // Check for duplicate tag name
-      const { data: existingTags } = await supabase
-        .from('tags')
-        .select('name')
-        .eq('name', name)
-        .limit(1)
-
-      if (existingTags && existingTags.length > 0) {
-        toast({
-          title: "Duplicate Tag",
-          description: "A tag with this name already exists.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // If no duplicate, proceed with insertion
       const { error } = await supabase
         .from('tags')
         .insert({
@@ -88,41 +71,62 @@ export function AddTagDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Tag
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            size="sm" 
+            className="bg-gradient-to-r from-pink-400 to-pink-500 hover:opacity-90 text-white gap-2 rounded-full px-4 shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+            Add Tag
+          </Button>
+        </motion.div>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px] glass border-accent/20">
         <DialogHeader>
-          <DialogTitle>Add Tag</DialogTitle>
-          <DialogDescription>
-            Add a new tag to categorize content
+          <DialogTitle className="gradient-text flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Add New Tag
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Create a new tag to categorize content
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Tag Name</Label>
+            <Input 
               name="name"
-              placeholder="Enter tag name"
+              placeholder="Enter tag name..." 
+              className="glass border-accent/20"
               required
-              minLength={2}
             />
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
+          <div className="space-y-2">
+            <Label className="text-foreground/80">Description (Optional)</Label>
+            <Textarea 
               name="description"
-              placeholder="Enter tag description"
-              rows={3}
+              placeholder="Add tag description..." 
+              className="glass border-accent/20 min-h-[100px]"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit
+          <Button 
+            type="submit" 
+            className="w-full bg-pink-500 hover:bg-pink-500/90 text-white"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="h-4 w-4" />
+                </motion.div>
+                Creating Tag...
+              </div>
+            ) : (
+              'Create Tag'
+            )}
           </Button>
         </form>
       </DialogContent>
