@@ -1,7 +1,7 @@
 "use client"
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { User, Sparkles, Star, Heart, Twitter, Instagram, Plus } from "lucide-react"
+import { User, Sparkles, Snowflake, Heart, Twitter, Instagram, Plus } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddLikeDislikeDialog } from "@/components/likes/add-like-dislike-dialog"
@@ -187,7 +187,7 @@ export default function Home() {
             transition={{ delay: 0.4 }}
           >
             <RotatingElement delay={0.3}>
-              <Star className="h-8 w-8 text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.4)]" />
+              <Snowflake className="h-8 w-8 text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.4)]" />
             </RotatingElement>
           </motion.div>
 

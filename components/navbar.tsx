@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Heart, Menu, Search, Sparkles, Tag, Moon, Sun } from "lucide-react"
+import { Heart, Menu, Search, Star, Tag, Moon, Sun } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -32,7 +32,7 @@ export function Navbar() {
                 scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
               }}
             >
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Star className="h-6 w-6 text-primary" />
             </motion.div>
             <span className="font-bold text-xl gradient-text">About Virgi</span>
           </Link>
@@ -44,7 +44,7 @@ export function Navbar() {
             <NavLink href="/tags" icon={Tag}>
               Tags
             </NavLink>
-            <NavLink href="/funfacts" icon={Sparkles}>
+            <NavLink href="/funfacts" icon={Star}>
               Fun Facts
             </NavLink>
           </nav>
@@ -95,7 +95,7 @@ export function Navbar() {
             <MobileNavLink href="/tags" icon={Tag}>
               Tags
             </MobileNavLink>
-            <MobileNavLink href="/funfacts" icon={Sparkles}>
+            <MobileNavLink href="/funfacts" icon={Star}>
               Fun Facts
             </MobileNavLink>
           </div>
