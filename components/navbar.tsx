@@ -60,27 +60,19 @@ export function Navbar() {
       <nav className="px-4 md:px-6 flex h-14 md:h-16 max-w-screen-2xl items-center">
         <div className="flex flex-1 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2 -ml-1">
-            <motion.div
+          <motion.div
               animate={{ 
-                rotate: isSmallDevice ? 0 : 360,
-                scale: isSmallDevice ? 1 : [1, 1.2, 1],
+                rotate: 360,
+                scale: [1, 1.2, 1],
               }}
               transition={{ 
                 rotate: { duration: 20, repeat: Infinity, ease: "linear" },
                 scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
               }}
-              className="hidden md:block"
             >
               <Star className="h-6 w-6 text-primary" />
             </motion.div>
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.1 }}
-              className="md:hidden"
-            >
-              <Star className="h-5 w-5 text-primary" />
-            </motion.div>
-            <span className="font-bold text-lg md:text-xl gradient-text">About Virgi</span>
+            <span className="font-bold text-xl gradient-text">About Virgi</span>
           </Link>
 
           <div className="flex items-center gap-2">
