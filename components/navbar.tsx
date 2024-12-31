@@ -143,24 +143,20 @@ function NavLink({ href, icon: Icon, children }: { href: string; icon: LucideIco
     <Link
       href={href}
       className={cn(
-        "relative flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm sm:text-base",
-        isActive 
-          ? "text-primary font-medium bg-gradient-to-r from-pink-400/20 via-pink-500/20 to-pink-400/20 shadow-lg" 
-          : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+        "nav-link inline-flex items-center rounded-md text-sm font-medium transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isActive ? "text-foreground" : "text-foreground/60",
+        "relative group"
       )}
     >
-      <Icon className={cn(
-        "h-4 w-4 sm:h-5 sm:w-5",
-        isActive && "text-pink-500"
-      )} />
-      <span>{children}</span>
-      {isActive && (
-        <motion.div
-          layoutId="navbar-active"
-          className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-400/20 via-pink-500/20 to-pink-400/20 border border-pink-500/20"
-          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-        />
-      )}
+      <motion.span
+        initial={false}
+        animate={{ scale: isActive ? 1.05 : 1 }}
+        transition={{ duration: 0.2 }}
+        className="flex items-center gap-x-2"
+      >
+        <Icon className="h-4 w-4" />
+        <span>{children}</span>
+      </motion.span>
     </Link>
   )
 }
@@ -170,20 +166,23 @@ function MobileNavLink({ href, icon: Icon, children }: { href: string; icon: Luc
   const isActive = pathname === href
 
   return (
-    <Link
-      href={href}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-base",
-        isActive 
-          ? "text-primary font-medium bg-gradient-to-r from-pink-400/20 via-pink-500/20 to-pink-400/20 shadow-sm" 
-          : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-      )}
-    >
-      <Icon className={cn(
-        "h-5 w-5",
-        isActive && "text-pink-500"
-      )} />
-      <span>{children}</span>
+    <Link href={href}>
+      <motion.div
+        initial={false}
+        animate={{ 
+          scale: isActive ? 1.05 : 1,
+          color: isActive ? "var(--foreground)" : "var(--foreground-60)"
+        }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        className={cn(
+          "nav-link flex flex-col items-center gap-1 rounded-md p-2 text-xs font-medium",
+          isActive ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        <Icon className="h-5 w-5" />
+        <span>{children}</span>
+      </motion.div>
     </Link>
   )
 }

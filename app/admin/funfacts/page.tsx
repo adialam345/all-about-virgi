@@ -80,7 +80,7 @@ export default function ManageFunFacts() {
     refetchOnMount: true,
     refetchOnReconnect: true,
     staleTime: 0,
-    cacheTime: 0
+    gcTime: 0
   })
 
   useEffect(() => {

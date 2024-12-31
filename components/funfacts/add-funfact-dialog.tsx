@@ -19,7 +19,11 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/components/ui/use-toast"
 import { useQueryClient } from "@tanstack/react-query"
 
-export function AddFunFactDialog() {
+interface AddFunFactDialogProps {
+  onSuccess?: () => void;
+}
+
+export function AddFunFactDialog({ onSuccess }: AddFunFactDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const supabase = createClientComponentClient()
@@ -71,6 +75,7 @@ export function AddFunFactDialog() {
 
       form.reset()
       setIsOpen(false)
+      onSuccess?.()
 
     } catch (error) {
       console.error('Error:', error)

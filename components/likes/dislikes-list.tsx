@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabaseClient as supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,11 +19,16 @@ interface Dislike {
   }[]
 }
 
-interface TagItem {
-  tag: {
-    id: string
-    name: string
-  }
+interface DbLike {
+  id: string
+  item_name: string
+  description: string
+  item_tags: {
+    tags: {
+      id: string
+      name: string
+    } | null
+  }[] | null
 }
 
 export function DislikesList() {
@@ -33,14 +38,16 @@ export function DislikesList() {
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('highlight')
 
-  const fetchDislikes = async () => {
+  const fetchDislikes = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data: likesData, error: likesError } = await supabase
         .from('likes')
         .select(`
-          *,
-          tags:item_tags(
-            tag:tags(
+          id,
+          item_name,
+          description,
+          item_tags (
+            tags (
               id,
               name
             )
@@ -48,40 +55,56 @@ export function DislikesList() {
         `)
         .eq('is_like', false)
         .order('created_at', { ascending: sortOrder === 'asc' })
+        .returns<DbLike[]>()
 
-      if (error) throw error
+      if (likesError) throw likesError
 
-      const transformedData = data?.map(dislike => ({
-        ...dislike,
-        tags: dislike.tags
-          ?.map((t: TagItem) => t.tag)
-          .filter(Boolean) || []
+      if (!likesData) {
+        setDislikes([])
+        return
+      }
+
+      const transformedData: Dislike[] = likesData.map(item => ({
+        id: item.id,
+        item_name: item.item_name,
+        description: item.description,
+        tags: (item.item_tags || [])
+          .map(t => t.tags)
+          .filter((tag): tag is { id: string; name: string } => 
+            tag !== null && 'id' in tag && 'name' in tag
+          )
       }))
 
-      setDislikes(transformedData || [])
+      setDislikes(transformedData)
     } catch (error) {
       console.error('Error fetching dislikes:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [sortOrder])
 
   useEffect(() => {
-    fetchDislikes()
+    let mounted = true
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('dislikes_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'likes' }, 
-        () => fetchDislikes()
+        () => {
+          if (mounted) {
+            fetchDislikes()
+          }
+        }
       )
       .subscribe()
 
+    fetchDislikes()
+
     return () => {
+      mounted = false
       channel.unsubscribe()
     }
-  }, [])
+  }, [fetchDislikes])
 
   useEffect(() => {
     if (highlightId) {
@@ -92,9 +115,12 @@ export function DislikesList() {
     }
   }, [highlightId, dislikes])
 
-  useEffect(() => {
-    fetchDislikes()
-  }, [sortOrder])
+  // Handle sort change without triggering tab swipe
+  const handleSortChange = (e: Event) => {
+    e.stopPropagation()
+    const target = e.target as HTMLSelectElement
+    setSortOrder(target.value as 'desc' | 'asc')
+  }
 
   return (
     <Card>
@@ -105,18 +131,20 @@ export function DislikesList() {
             <CardDescription>Things that Astrella doesn't like</CardDescription>
           </div>
         </div>
-        <Select
-          value={sortOrder}
-          onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="desc">Newest First</SelectItem>
-            <SelectItem value="asc">Oldest First</SelectItem>
-          </SelectContent>
-        </Select>
+        <div onClick={e => e.stopPropagation()} className="touch-none">
+          <Select
+            value={sortOrder}
+            onValueChange={(value: 'desc' | 'asc') => setSortOrder(value)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Newest First</SelectItem>
+              <SelectItem value="asc">Oldest First</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
