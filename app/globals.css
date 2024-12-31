@@ -102,14 +102,40 @@
 
   .card-hover {
     @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-gradient-to-br from-primary/10 to-secondary/10 backdrop-blur-sm border border-border/50;
+    will-change: transform;
+  }
+
+  @media (max-width: 768px) {
+    .card-hover {
+      @apply hover:scale-100;
+    }
+    
+    .glow-effect::before {
+      display: none;
+    }
+    
+    .floating {
+      animation: none;
+    }
+    
+    .sparkle {
+      animation: none;
+    }
+    
+    .glass {
+      backdrop-filter: none;
+      @apply bg-background/80;
+    }
   }
 
   .floating {
     animation: floating 4s ease-in-out infinite;
+    will-change: transform;
   }
 
   .sparkle {
     animation: sparkle 2s ease-in-out infinite;
+    will-change: transform;
   }
 
   [role="tabpanel"] {

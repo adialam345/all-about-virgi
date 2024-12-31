@@ -5,7 +5,8 @@ import { Sparkles } from 'lucide-react';
 import { AddFunFactDialog } from './add-funfact-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
+import debounce from 'lodash/debounce';
 
 interface FunFact {
   id: number;
@@ -18,6 +19,14 @@ export function FunFactsSection() {
   const supabase = createClientComponentClient();
   const queryClient = useQueryClient();
 
+  const debouncedInvalidate = useMemo(
+    () =>
+      debounce(() => {
+        queryClient.invalidateQueries({ queryKey: ['funfacts'] });
+      }, 1000),
+    [queryClient]
+  );
+
   const { data: funFacts, isLoading } = useQuery({
     queryKey: ['funfacts'],
     queryFn: async () => {
@@ -29,6 +38,8 @@ export function FunFactsSection() {
       if (error) throw error;
       return data as FunFact[];
     },
+    staleTime: 10000, // Cache data for 10 seconds
+    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
   });
 
   useEffect(() => {
@@ -41,16 +52,15 @@ export function FunFactsSection() {
           schema: 'public',
           table: 'fun_facts',
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['funfacts'] });
-        }
+        debouncedInvalidate
       )
       .subscribe();
 
     return () => {
+      debouncedInvalidate.cancel();
       supabase.removeChannel(channel);
     };
-  }, [queryClient, supabase]);
+  }, [supabase, debouncedInvalidate]);
 
   return (
     <div className="space-y-6">
