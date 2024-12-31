@@ -5,7 +5,7 @@ import { Sparkles } from 'lucide-react';
 import { AddFunFactDialog } from './add-funfact-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 interface FunFact {
@@ -18,6 +18,16 @@ interface FunFact {
 export function FunFactsSection() {
   const supabase = createClientComponentClient();
   const queryClient = useQueryClient();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const debouncedInvalidate = useMemo(
     () =>
@@ -72,13 +82,22 @@ export function FunFactsSection() {
         {isLoading ? (
           <div className="text-muted-foreground">Loading fun facts...</div>
         ) : funFacts && funFacts.length > 0 ? (
-          funFacts.map((fact) => (
+          funFacts.map((fact, index) => (
             <motion.div
               key={fact.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ 
+                duration: isMobile ? 0.2 : 0.3,
+                delay: isMobile ? index * 0.05 : index * 0.1,
+                ease: "easeOut"
+              }}
+              viewport={{ once: true }}
               className="group relative rounded-lg border border-accent/20 bg-card p-4 md:p-6 glass"
+              style={{
+                willChange: 'transform, opacity',
+                transform: 'translate3d(0,0,0)'
+              }}
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1.5 md:space-y-2">

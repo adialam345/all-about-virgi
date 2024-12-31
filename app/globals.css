@@ -50,11 +50,15 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
     @apply bg-background text-foreground overflow-x-hidden;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   input, textarea, p, h1, h2, h3, h4, h5, h6, span {
@@ -73,6 +77,14 @@
     
     body {
       @apply touch-pan-y;
+      scroll-padding-top: 3.5rem;
+    }
+
+    * {
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
   }
 }
@@ -80,39 +92,68 @@
 /* Page transition animations */
 .page-enter {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateX(8px);
 }
 
 .page-enter-active {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
+  transform: translateX(0);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
 
 .page-exit {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
 }
 
 .page-exit-active {
   opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
+  transform: translateX(-8px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+@media (max-width: 768px) {
+  .page-enter {
+    transform: translateX(0);
+    opacity: 0;
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transition: opacity 100ms ease-out;
+  }
+
+  .page-exit {
+    opacity: 1;
+  }
+
+  .page-exit-active {
+    opacity: 0;
+    transform: translateX(0);
+    transition: opacity 100ms ease-out;
+  }
 }
 
 /* Smooth tab transitions */
 [role="tabpanel"] {
-  transition: all 200ms ease-in-out;
+  transition: all 150ms ease-out;
 }
 
 [role="tabpanel"][data-state="inactive"] {
   opacity: 0;
-  transform: translateY(4px);
+  transform: translateX(4px);
 }
 
 [role="tabpanel"][data-state="active"] {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+  [role="tabpanel"][data-state="inactive"] {
+    transform: translateX(0);
+    display: none;
+  }
 }
 
 /* Navigation link animations */
