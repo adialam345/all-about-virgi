@@ -239,8 +239,8 @@ export default function ManageFunFacts() {
   }
 
   return (
-    <div className="flex flex-col h-full -mx-6">
-      <div className="py-4 bg-background px-6">
+    <div className="flex flex-col h-full p-4">
+      <div className="py-4 bg-background">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Fun Facts</h1>
@@ -253,7 +253,7 @@ export default function ManageFunFacts() {
       </div>
 
       <div className="flex-1">
-        <div className="py-3 border-b bg-card px-6">
+        <div className="py-3 border-b bg-card">
           <h2 className="text-lg font-semibold">All Fun Facts ({funFacts.length})</h2>
         </div>
 

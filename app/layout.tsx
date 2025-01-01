@@ -7,8 +7,8 @@ import { ClientLayout } from './client-layout'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Virgi',
-  description: 'Suka berekspresi melalui kreasi, Tara! Aku Virgi',
+  title: 'All About Things Virgi',
+  description: 'Made With ❤️',
 }
 
 export default function RootLayout({

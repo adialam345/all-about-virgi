@@ -211,8 +211,8 @@ export default function ManageLikes() {
   }
 
   return (
-    <div className="flex flex-col h-full -mx-6">
-      <div className="py-4 bg-background px-6">
+    <div className="flex flex-col h-full p-4">
+      <div className="py-4 bg-background">
         <h1 className="text-2xl font-bold">Manage Likes</h1>
         <p className="text-muted-foreground">
           View and manage likes and dislikes
@@ -220,7 +220,7 @@ export default function ManageLikes() {
       </div>
 
       <div className="flex-1">
-        <div className="py-3 border-b bg-card px-6">
+        <div className="py-3 border-b bg-card">
           <h2 className="text-lg font-semibold">All Items ({likes.length})</h2>
         </div>
 
